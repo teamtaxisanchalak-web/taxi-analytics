@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Analytics — Live Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0e14; --panel: #11161f; --panel-hi: #1a212e; --border: #232b3a;
+  --text: #e4e8ef; --muted: #8791a5;
+  --accent: #00d9a4; --warn: #ffb547; --danger: #ff5970; --info: #5eb8ff;
+  --success: #00d9a4;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Space Grotesk', -apple-system, sans-serif; line-height: 1.5;
+  min-height: 100vh;
+  background-image: radial-gradient(circle at 20% 0%, rgba(0,217,164,0.08), transparent 50%), radial-gradient(circle at 80% 100%, rgba(94,184,255,0.06), transparent 50%);
+}
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.header-left { flex: 1; min-width: 250px; }
+.title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.title span { color: var(--accent); }
+.subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+.header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.refresh-btn { background: var(--accent); color: var(--bg); border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: transform 0.15s; }
+.refresh-btn:hover { transform: translateY(-1px); }
+.refresh-btn.loading { opacity: 0.7; pointer-events: none; }
+.refresh-btn .spinner { width: 14px; height: 14px; border: 2px solid rgba(10,14,20,0.3); border-top-color: var(--bg); border-radius: 50%; display: none; animation: spin 0.8s linear infinite; }
+.refresh-btn.loading .spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.last-updated { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.api-config { background: var(--panel-hi); padding: 8px 12px; border-radius: 6px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; cursor: pointer; border: 1px dashed var(--border); }
+.api-config:hover { border-color: var(--accent); color: var(--text); }
+
+.filter-bar {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 20px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.filter-bar label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.filter-bar input[type="date"] {
+  background: var(--panel-hi); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 12px; border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; color-scheme: dark;
+}
+.quick-btn { background: var(--panel-hi); color: var(--muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+.quick-btn:hover { background: var(--border); color: var(--text); }
+.quick-btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab { padding: 12px 18px; cursor: pointer; color: var(--muted); font-weight: 500; font-size: 14px; border-bottom: 2px solid transparent; white-space: nowrap; background: none; border-left: none; border-right: none; border-top: none; font-family: inherit; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; animation: fadeIn 0.3s ease; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--accent); }
+.kpi.danger::before { background: var(--danger); }
+.kpi.warn::before { background: var(--warn); }
+.kpi.info::before { background: var(--info); }
+.kpi-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.kpi-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.kpi-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+.panel h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+.panel .desc { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); background: var(--panel-hi); }
+tbody td { padding: 10px 12px; border-bottom: 1px solid rgba(35,43,58,0.5); vertical-align: top; }
+tbody tr:hover { background: var(--panel-hi); }
+td .mono, .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+tbody tr.row-danger { background: rgba(255,89,112,0.06); }
+tbody tr.row-warning { background: rgba(255,181,71,0.05); }
+tbody tr.row-info { background: rgba(94,184,255,0.05); }
+tbody tr.row-success { background: rgba(0,217,164,0.04); }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.badge.success, .badge.good { background: rgba(0,217,164,0.15); color: var(--success); }
+.badge.warning { background: rgba(255,181,71,0.15); color: var(--warn); }
+.badge.danger { background: rgba(255,89,112,0.15); color: var(--danger); }
+.badge.info { background: rgba(94,184,255,0.15); color: var(--info); }
+.badge.orphan { background: rgba(255,181,71,0.15); color: var(--warn); font-size: 10px; margin-left: 4px; }
+
+.mini-bar { display: flex; align-items: center; gap: 6px; }
+.mini-bar-track { width: 60px; height: 5px; background: var(--panel-hi); border-radius: 3px; overflow: hidden; }
+.mini-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.mini-bar-fill.warning { background: var(--warn); }
+.mini-bar-fill.danger { background: var(--danger); }
+
+.flags { display: flex; flex-direction: column; gap: 4px; }
+.flag { font-size: 12px; padding: 3px 8px; border-radius: 6px; background: var(--panel-hi); display: inline-block; }
+.flag.danger { background: rgba(255,89,112,0.15); color: var(--danger); }
+.flag.warning { background: rgba(255,181,71,0.15); color: var(--warn); }
+.flag.good { background: rgba(0,217,164,0.15); color: var(--success); }
+.flag.info { background: rgba(94,184,255,0.15); color: var(--info); }
+
+.insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.insight { padding: 20px; border-radius: 10px; background: var(--panel-hi); border-left: 3px solid var(--accent); }
+.insight.danger { border-left-color: var(--danger); }
+.insight.warn { border-left-color: var(--warn); }
+.insight h3 { font-size: 15px; margin-bottom: 8px; }
+.insight p { color: var(--muted); font-size: 13px; }
+
+.chart-wrap { height: 320px; margin-top: 12px; margin-bottom: 20px; }
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+
+.hbar { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(35,43,58,0.5); }
+.hbar-label { width: 110px; font-size: 12px; color: var(--muted); }
+.hbar-track { flex: 1; height: 22px; background: var(--panel-hi); border-radius: 4px; overflow: hidden; position: relative; }
+.hbar-fill { height: 100%; background: var(--accent); border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 600; color: var(--bg); }
+.hbar-value { width: 70px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+.stats-strip { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat-chip { background: var(--panel-hi); border-radius: 8px; padding: 10px 14px; font-size: 12px; }
+.stat-chip strong { color: var(--accent); font-size: 14px; font-family: 'JetBrains Mono', monospace; }
+.stat-chip.danger strong { color: var(--danger); }
+
+.info-box {
+  background: rgba(94,184,255,0.08); border: 1px solid rgba(94,184,255,0.25);
+  border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--text); margin-bottom: 16px;
+}
+.info-box strong { color: var(--info); }
+
+.section-divider { border-top: 1px solid var(--border); margin: 24px 0 20px; padding-top: 20px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+
+.hour-breakdown {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+}
+.hour-breakdown .chip {
+  display: inline-block; background: var(--panel-hi); color: var(--info);
+  padding: 2px 6px; border-radius: 4px; margin: 2px 2px 2px 0; font-size: 10px;
+}
+.hour-breakdown .equals { color: var(--accent); font-weight: 700; margin: 0 4px; }
+
+.swap-card {
+  background: linear-gradient(135deg, rgba(255,181,71,0.1), rgba(94,184,255,0.1));
+  border: 1px solid rgba(255,181,71,0.3); border-radius: 12px; padding: 20px; margin-bottom: 14px;
+}
+.swap-flow { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.swap-side { flex: 1; min-width: 200px; padding: 12px; background: var(--panel-hi); border-radius: 8px; }
+.swap-side .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+.swap-side .shift-name { font-weight: 700; font-size: 15px; font-family: 'JetBrains Mono', monospace; }
+.swap-side .reason { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.swap-side.from { border-left: 3px solid var(--warn); }
+.swap-side.to { border-left: 3px solid var(--accent); }
+.swap-arrow { font-size: 24px; color: var(--accent); font-weight: 700; }
+.swap-candidates { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--border); }
+.swap-candidate { background: var(--accent); color: var(--bg); padding: 4px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+
+.loading-screen { text-align: center; padding: 80px 20px; color: var(--muted); }
+.loading-screen .spinner-big { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 18px; animation: spin 1s linear infinite; }
+.error-screen { text-align: center; padding: 60px 20px; }
+.error-screen h2 { color: var(--danger); }
+.error-screen p { color: var(--muted); margin: 10px 0; }
+
+.setup-screen { text-align: center; padding: 60px 20px; max-width: 600px; margin: 0 auto; }
+.setup-screen h2 { color: var(--accent); margin-bottom: 20px; }
+.setup-screen input { width: 100%; padding: 14px; background: var(--panel-hi); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; margin: 12px 0; }
+.setup-screen button { background: var(--accent); color: var(--bg); border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 14px; }
+
+.footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px 0; font-family: 'JetBrains Mono', monospace; }
+
+.cause-card { background: var(--panel-hi); border-left: 4px solid var(--muted); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; }
+.cause-card.danger { border-left-color: var(--danger); }
+.cause-card.warning { border-left-color: var(--warn); }
+.cause-card.info { border-left-color: var(--info); }
+.cause-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 10px; }
+.cause-title { font-weight: 600; font-size: 15px; color: var(--text); }
+.cause-count { background: var(--accent); color: var(--bg); padding: 4px 12px; border-radius: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.cause-count.danger { background: var(--danger); color: #fff; }
+.cause-count.warning { background: var(--warn); color: var(--bg); }
+.cause-desc { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.cause-bar-track { background: var(--bg); border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 10px; }
+.cause-bar-fill { background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.3s; }
+.cause-bar-fill.danger { background: var(--danger); }
+.cause-bar-fill.warning { background: var(--warn); }
+.cause-examples { margin-top: 8px; background: var(--bg); border-radius: 6px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+.cause-example-row { display: flex; gap: 10px; padding: 4px 0; flex-wrap: wrap; }
+.cause-example-row strong { color: var(--text); }
+
+.redesign-rec { background: var(--panel-hi); border-radius: 8px; padding: 14px 18px; margin-bottom: 10px; border-left: 4px solid var(--info); }
+.redesign-rec.danger { border-left-color: var(--danger); background: rgba(255,89,112,0.08); }
+.redesign-rec.warning { border-left-color: var(--warn); background: rgba(255,181,71,0.06); }
+.redesign-rec .rec-type { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.redesign-rec .rec-title { font-weight: 600; font-size: 15px; margin: 4px 0; color: var(--text); }
+.redesign-rec .rec-detail { color: var(--muted); font-size: 13px; }
+
+.shift-suggest { background: var(--panel-hi); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.shift-suggest .shift-time { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 16px; color: var(--accent); }
+.shift-suggest .shift-agents { background: var(--accent); color: var(--bg); padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 13px; }
+.shift-suggest .shift-reason { flex: 1; color: var(--muted); font-size: 13px; min-width: 200px; }
+
+.gap-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.gap-cell.positive { color: var(--danger); }
+.gap-cell.zero { color: var(--success); }
+.gap-cell.negative { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="header-left">
+    <div class="title">Call Analytics <span>//</span> Live</div>
+    <div class="subtitle" id="dataMeta">Loading…</div>
+  </div>
+  <div class="header-right">
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData(true)">
+      <span class="spinner"></span>
+      <span class="btn-text">🔄 Refresh</span>
+    </button>
+    <div class="last-updated" id="lastUpdated"></div>
+    <div class="api-config" onclick="changeApiUrl()" title="Click to change API URL">⚙️ API Settings</div>
+  </div>
+</header>
+
+<div id="setupScreen" class="setup-screen" style="display:none;">
+  <h2>🔧 One-time Setup</h2>
+  <p>Paste your Apps Script Web App URL (ending in <code>/exec</code>)</p>
+  <input type="text" id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+  <button onclick="saveApiUrl()">Save & Load Dashboard</button>
+</div>
+
+<div id="mainContent" style="display:none;">
+
+  <div class="filter-bar">
+    <label>📅 Date Range:</label>
+    <input type="date" id="dateFrom" onchange="applyDateFilter()" />
+    <span style="color:var(--muted);">to</span>
+    <input type="date" id="dateTo" onchange="applyDateFilter()" />
+    <button class="quick-btn" onclick="setQuickRange('today', this)">Today</button>
+    <button class="quick-btn" onclick="setQuickRange('yesterday', this)">Yesterday</button>
+    <button class="quick-btn" onclick="setQuickRange('7days', this)">Last 7 Days</button>
+    <button class="quick-btn" onclick="setQuickRange('30days', this)">Last 30 Days</button>
+    <button class="quick-btn active" onclick="setQuickRange('all', this)">All Data</button>
+    <div style="flex:1;"></div>
+    <span style="color:var(--muted);font-size:12px;" id="filterStatus">All data shown</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview', this)">Overview</button>
+    <button class="tab" onclick="showTab('shiftAnalyzer', this)">⭐ Shift Analyzer</button>
+    <button class="tab" onclick="showTab('strength', this)">Shift Strength</button>
+    <button class="tab" onclick="showTab('flow', this)">Call Flow</button>
+    <button class="tab" onclick="showTab('depts', this)">Departments</button>
+    <button class="tab" onclick="showTab('agents', this)">Agent Behavior</button>
+    <button class="tab" onclick="showTab('missed', this)">Missed Calls</button>
+  </div>
+
+  <div id="tab-overview" class="tab-content active">
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="panel">
+      <h2>🧠 AI Insights — Executive Summary</h2>
+      <div class="desc">Plain-English findings</div>
+      <div class="insights" id="insights"></div>
+    </div>
+    <div class="chart-grid">
+      <div class="panel"><h2>📞 Calls Per Hour</h2><div class="chart-wrap"><canvas id="chartCallsHour"></canvas></div></div>
+      <div class="panel"><h2>🏢 Calls by Department</h2><div class="chart-wrap"><canvas id="chartDepts"></canvas></div></div>
+    </div>
+  </div>
+
+  <div id="tab-shiftAnalyzer" class="tab-content">
+    <div class="panel">
+      <h2>⭐ Shift Analyzer — Who needs more people?</h2>
+      <div class="info-box">
+        <strong>ℹ️ How it works:</strong> Calls are attributed <strong>proportionally to shifts based on agent count</strong> per hour.
+        Example: If 10 AM has 11 agents from "10 AM-7 PM" + 3 from "6 AM-2 PM" = 14 total, a call at 10 AM gets 11/14 attributed to the first shift, 3/14 to the second.
+      </div>
+      <div class="stats-strip" id="shiftAnalyzerStrip"></div>
+      <table>
+        <thead><tr>
+          <th>Shift</th><th>Agents</th><th>Attributed Calls</th><th>Received</th><th>Missed</th><th>Miss %</th>
+          <th>Calls/Agent</th><th>Idle</th><th>Status</th><th>Recommendation</th>
+        </tr></thead>
+        <tbody id="shiftAnalyzerTable"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>🕐 Hourly Overlap Profile</h2>
+      <div class="desc">See exactly how many agents from which shifts are active each hour</div>
+      <table>
+        <thead><tr><th>Hour</th><th>Total Agents</th><th>Breakdown</th><th>Calls</th><th>Received</th><th>Missed</th><th>Calls/Agent</th></tr></thead>
+        <tbody id="hourlyProfileTable"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>🔄 Swap Suggestions — Move agents between shifts</h2>
+      <div class="desc">AI-recommended agent transfers</div>
+      <div id="swapSuggestions"></div>
+    </div>
+
+    <div class="panel">
+      <h2>🧠 AI Shift Redesign — Reduce Missed Calls</h2>
+      <div class="desc">Proactive analysis: where your current shift layout leaves gaps and how to fix it</div>
+      <div class="stats-strip" id="redesignStrip"></div>
+      <div id="redesignRecs"></div>
+      <h3 style="margin-top:20px;color:var(--accent);">📋 Hour-by-Hour Staffing Gap</h3>
+      <div class="desc">Compares current agents vs ideal (target ≤7 calls/agent)</div>
+      <table>
+        <thead><tr><th>Hour</th><th>Calls</th><th>Missed</th><th>Current Agents</th><th>Ideal Agents</th><th>Gap</th><th>Status</th></tr></thead>
+        <tbody id="redesignGapTable"></tbody>
+      </table>
+      <h3 style="margin-top:20px;color:var(--accent);">💡 Suggested New Shift Layout</h3>
+      <div class="desc">A proposed shift structure designed around your actual call patterns</div>
+      <div id="redesignLayout"></div>
+    </div>
+  </div>
+
+  <div id="tab-strength" class="tab-content">
+    <div class="chart-grid">
+      <div class="panel"><h2>👥 Shift-wise Agent Strength</h2><div id="shiftBars"></div></div>
+      <div class="panel"><h2>⏰ Hourly Strength</h2><div class="chart-wrap"><canvas id="chartHourlyStrength"></canvas></div></div>
+    </div>
+    <div class="panel"><h2>📋 Shift Details</h2><table><thead><tr><th>Shift</th><th>Count</th><th>Agents</th></tr></thead><tbody id="shiftTable"></tbody></table></div>
+  </div>
+
+  <div id="tab-flow" class="tab-content">
+    <div class="panel">
+      <h2>📈 Call Flow vs Staff Capacity</h2>
+      <div class="desc">Yellow line = agents on duty. Bars = calls.</div>
+      <div class="chart-wrap"><canvas id="chartFlow"></canvas></div>
+      <div class="section-divider"></div>
+      <div class="section-title">🔍 Hourly Breakdown</div>
+      <div class="stats-strip" id="flowStrip"></div>
+      <table>
+        <thead><tr><th>Hour</th><th>Agents</th><th>Calls</th><th>Received</th><th>Missed</th><th>Miss %</th><th>Calls/Agent</th><th>Load</th><th>Recommendation</th></tr></thead>
+        <tbody id="flowTable"></tbody>
+      </table>
+    </div>
+    <div class="panel"><h2>🔥 Peak Call Times</h2><table><thead><tr><th>Time</th><th>Total</th><th>Missed</th></tr></thead><tbody id="peaksTable"></tbody></table></div>
+  </div>
+
+  <div id="tab-depts" class="tab-content">
+    <div class="panel">
+      <h2>🏢 Department Workload</h2>
+      <div class="info-box" id="orphanNote"></div>
+      <table>
+        <thead><tr>
+          <th>Department</th><th>Calls</th><th>Received</th>
+          <th>Missed</th><th>+Orphan</th><th>Total Missed</th>
+          <th>Miss % (Adj.)</th><th>Avg Talk</th><th>Recommendation</th>
+        </tr></thead>
+        <tbody id="deptTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-agents" class="tab-content">
+    <div class="panel"><h2>👤 Agent Behavior Analysis</h2><div class="desc" id="peerDesc"></div>
+      <table><thead><tr><th>Agent</th><th>Shift</th><th>Calls</th><th>Received</th><th>Missed</th><th>Miss %</th><th>Avg Ring</th><th>Avg Talk</th><th>Total Talk</th><th>Flags</th></tr></thead><tbody id="agentTable"></tbody></table>
+    </div>
+  </div>
+
+  <div id="tab-missed" class="tab-content">
+    <div class="kpi-grid" id="missedKpi"></div>
+    <div class="panel"><h2>❌ Missed Calls by Hour</h2><div class="chart-wrap"><canvas id="chartMissedHour"></canvas></div></div>
+
+    <div class="panel">
+      <h2>🔬 Why Missed Calls Are Happening — Root Cause Breakdown</h2>
+      <div class="desc">Every missed call classified into a specific reason bucket</div>
+      <div id="rootCauseBreakdown"></div>
+    </div>
+
+    <div class="panel">
+      <h2>🎯 Actionable Insights to Reduce Miss Rate</h2>
+      <div class="desc">Prioritized fixes based on root cause analysis</div>
+      <div class="insights" id="rootCauseInsights"></div>
+    </div>
+
+    <div class="panel"><h2>💡 Pattern Summary</h2><div class="insights" id="missedInsights"></div></div>
+  </div>
+</div>
+
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner-big"></div>
+  <div>Loading live data…</div>
+</div>
+
+<div id="errorScreen" class="error-screen" style="display:none;">
+  <h2>⚠️ Could not load data</h2>
+  <p id="errorMsg"></p>
+  <button class="refresh-btn" onclick="loadData(true)" style="margin-top:16px;display:inline-flex;">Retry</button>
+  <button class="refresh-btn" onclick="changeApiUrl()" style="margin-top:16px;margin-left:8px;display:inline-flex;background:var(--warn);">Change API URL</button>
+</div>
+
+<div class="footer">Data: <span id="dataRange"></span></div>
+
+</div>
+
+<script>
+let DATA = null;
+let charts = {};
+let API_URL = localStorage.getItem('call_analyzer_api_url') || '';
+let currentFilter = { from: '', to: '' };
+
+if (!API_URL) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'block';
+}
+
+function saveApiUrl() {
+  const url = document.getElementById('setupUrl').value.trim();
+  if (!url || !url.includes('/exec')) { alert('Please paste a valid /exec URL'); return; }
+  API_URL = url;
+  localStorage.setItem('call_analyzer_api_url', url);
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('loadingScreen').style.display = 'block';
+  loadData(false);
+}
+function changeApiUrl() {
+  const url = prompt('Enter your Apps Script /exec URL:', API_URL);
+  if (url && url.includes('/exec')) {
+    API_URL = url.trim();
+    localStorage.setItem('call_analyzer_api_url', API_URL);
+    loadData(true);
+  }
+}
+
+function fmtSec(s) {
+  s = parseInt(s) || 0;
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+function showTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+function applyDateFilter() {
+  currentFilter.from = document.getElementById('dateFrom').value;
+  currentFilter.to = document.getElementById('dateTo').value;
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  updateFilterStatus();
+  loadData(true);
+}
+
+function setQuickRange(range, btn) {
+  document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const today = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if (range === 'today') { currentFilter.from = ymd(today); currentFilter.to = ymd(today); }
+  else if (range === 'yesterday') { const y = new Date(today); y.setDate(y.getDate()-1); currentFilter.from = ymd(y); currentFilter.to = ymd(y); }
+  else if (range === '7days') { const s = new Date(today); s.setDate(s.getDate()-6); currentFilter.from = ymd(s); currentFilter.to = ymd(today); }
+  else if (range === '30days') { const s = new Date(today); s.setDate(s.getDate()-29); currentFilter.from = ymd(s); currentFilter.to = ymd(today); }
+  else { currentFilter.from = ''; currentFilter.to = ''; }
+  document.getElementById('dateFrom').value = currentFilter.from;
+  document.getElementById('dateTo').value = currentFilter.to;
+  updateFilterStatus();
+  loadData(true);
+}
+
+function updateFilterStatus() {
+  const s = document.getElementById('filterStatus');
+  if (!currentFilter.from && !currentFilter.to) s.textContent = 'All data shown';
+  else if (currentFilter.from === currentFilter.to) s.textContent = `Showing: ${currentFilter.from}`;
+  else s.textContent = `Showing: ${currentFilter.from || 'start'} → ${currentFilter.to || 'now'}`;
+}
+
+function loadData(showSpinner) {
+  if (!API_URL) { document.getElementById('setupScreen').style.display = 'block'; return; }
+  const btn = document.getElementById('refreshBtn');
+  if (showSpinner) btn.classList.add('loading');
+
+  const oldScript = document.getElementById('jsonpScript');
+  if (oldScript) oldScript.remove();
+
+  const cbName = 'callAnalyzerCb_' + Date.now();
+  const timeoutId = setTimeout(() => {
+    delete window[cbName];
+    const s = document.getElementById('jsonpScript'); if (s) s.remove();
+    showError('Request timed out.', btn);
+  }, 20000);
+
+  window[cbName] = function(data) {
+    clearTimeout(timeoutId);
+    delete window[cbName];
+    const s = document.getElementById('jsonpScript'); if (s) s.remove();
+    handleDataLoad(data, btn);
+  };
+
+  const script = document.createElement('script');
+  script.id = 'jsonpScript';
+  const sep = API_URL.includes('?') ? '&' : '?';
+  let url = API_URL + sep + 'api=data&callback=' + cbName + '&_=' + Date.now();
+  if (currentFilter.from) url += '&from=' + currentFilter.from;
+  if (currentFilter.to) url += '&to=' + currentFilter.to;
+  script.src = url;
+  script.onerror = () => { clearTimeout(timeoutId); showError('Failed to connect.', btn); };
+  document.body.appendChild(script);
+}
+
+function handleDataLoad(data, btn) {
+  if (data.error) { showError(data.error, btn); return; }
+  DATA = data;
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('errorScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  render();
+  document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+  btn.classList.remove('loading');
+}
+
+function showError(msg, btn) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('errorScreen').style.display = 'block';
+  document.getElementById('errorMsg').textContent = msg;
+  btn.classList.remove('loading');
+}
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function render() {
+  const d = DATA;
+  document.getElementById('dataMeta').textContent =
+    `${d.meta.total_calls} calls • ${d.meta.total_agents} agents • ${d.meta.total_depts} departments`;
+  document.getElementById('dataRange').textContent = d.meta.data_range;
+
+  const missPct = d.meta.overall_miss_pct;
+  const missClass = missPct > 20 ? 'danger' : missPct > 10 ? 'warn' : '';
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Total Calls</div><div class="kpi-value">${d.meta.total_calls}</div><div class="kpi-sub">All events</div></div>
+    <div class="kpi"><div class="kpi-label">Inbound</div><div class="kpi-value">${d.meta.total_inbound}</div><div class="kpi-sub">Customer calls</div></div>
+    <div class="kpi info"><div class="kpi-label">Outbound</div><div class="kpi-value">${d.meta.total_outbound}</div><div class="kpi-sub">Callbacks</div></div>
+    <div class="kpi danger"><div class="kpi-label">Missed Calls</div><div class="kpi-value">${d.meta.total_missed}</div><div class="kpi-sub">${d.meta.overall_miss_pct}% miss rate</div></div>
+  `;
+
+  const insights = [];
+  if (d.meta.overall_miss_pct > 15) insights.push({type:'danger', h:'🚨 High Miss Rate', p:`${d.meta.overall_miss_pct}% missed. Industry benchmark <5%.`});
+  const over = d.hourly_flow.filter(h => h.rec_type === 'danger');
+  if (over.length) insights.push({type:'danger', h:'⚡ Overload Hours', p:`${over.length} hour(s): ${over.map(h=>h.hour_label).join(', ')}`});
+  if (d.peaks.length) { const p = d.peaks[0]; insights.push({type:'warn', h:'🔥 Peak Minute', p:`${p.time}: ${p.total} calls, ${p.missed} missed.`}); }
+  if (d.problem_agents_count > 0) insights.push({type:'warn', h:'👤 Problem Agents', p:`${d.problem_agents_count} agent(s) flagged.`});
+  if (d.shift_analyzer && d.shift_analyzer.swap_suggestions.length > 0) insights.push({type:'warn', h:'🔄 Shift Swaps Available', p:`${d.shift_analyzer.swap_suggestions.length} recommended swap(s). Check Shift Analyzer tab.`});
+  if (d.orphan_missed > 0) insights.push({type:'warn', h:'📵 Orphan Missed', p:`${d.orphan_missed} missed with no department assigned.`});
+  if (!insights.length) insights.push({type:'', h:'✅ All Good', p:'No critical issues.'});
+  document.getElementById('insights').innerHTML = insights.map(i => `<div class="insight ${i.type}"><h3>${i.h}</h3><p>${i.p}</p></div>`).join('');
+
+  Chart.defaults.color = '#8791a5';
+  Chart.defaults.borderColor = '#232b3a';
+  Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+  destroyChart('callsHour');
+  charts.callsHour = new Chart(document.getElementById('chartCallsHour'), {
+    type: 'bar',
+    data: { labels: d.hourly_flow.map(h => h.hour_label),
+      datasets: [
+        {label:'Received', data: d.hourly_flow.map(h => h.received), backgroundColor:'#00d9a4'},
+        {label:'Missed', data: d.hourly_flow.map(h => h.missed), backgroundColor:'#ff5970'}
+      ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}},
+      scales: { x:{stacked:true}, y:{stacked:true, beginAtZero:true} } }
+  });
+
+  destroyChart('depts');
+  charts.depts = new Chart(document.getElementById('chartDepts'), {
+    type: 'bar',
+    data: { labels: d.departments.map(x => x.dept),
+      datasets: [
+        {label:'Received', data: d.departments.map(x => x.received), backgroundColor:'#00d9a4'},
+        {label:'Missed', data: d.departments.map(x => x.missed), backgroundColor:'#ff5970'},
+        {label:'+ Orphan', data: d.departments.map(x => x.orphan_share || 0), backgroundColor:'#ffb547'}
+      ]},
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      scales: { x:{stacked:true, beginAtZero:true}, y:{stacked:true} } }
+  });
+
+  // ============ SHIFT ANALYZER - CORRECTED ============
+  if (d.shift_analyzer && d.shift_analyzer.shifts) {
+    const sa = d.shift_analyzer;
+    document.getElementById('shiftAnalyzerStrip').innerHTML = `
+      <div class="stat-chip">Total shifts: <strong>${sa.shifts.length}</strong></div>
+      ${sa.total_overloaded > 0 ? `<div class="stat-chip danger">⚠️ Overloaded: <strong>${sa.total_overloaded}</strong></div>` : ''}
+      ${sa.total_overstaffed > 0 ? `<div class="stat-chip">💤 Over-staffed: <strong>${sa.total_overstaffed}</strong></div>` : ''}
+      <div class="stat-chip">Swap suggestions: <strong>${sa.swap_suggestions.length}</strong></div>
+    `;
+
+    document.getElementById('shiftAnalyzerTable').innerHTML = sa.shifts.map(s => {
+      const rowC = s.status_type === 'danger' ? 'row-danger' :
+                   s.status_type === 'warning' ? 'row-warning' :
+                   s.status_type === 'info' ? 'row-info' : 'row-success';
+      return `<tr class="${rowC}">
+        <td><strong>${s.shift}</strong></td>
+        <td class="mono"><span class="badge info">${s.agent_count}</span></td>
+        <td class="mono"><strong>${s.calls_attributed}</strong><br><span style="color:var(--muted);font-size:10px;">(of ${s.calls_total_in_hours} during hours)</span></td>
+        <td class="mono">${s.received}</td>
+        <td class="mono">${s.missed > 0 ? `<span class="badge danger">${s.missed}</span>` : '0'}</td>
+        <td class="mono">${s.miss_pct}%</td>
+        <td class="mono"><strong>${s.calls_per_agent}</strong></td>
+        <td class="mono">${s.idle_agents.length > 0 ? `<span class="badge warning">${s.idle_agents.length} idle</span>` : '0'}</td>
+        <td><span class="badge ${s.status_type}">${s.status}</span></td>
+        <td style="font-size:12px;color:var(--muted);">${s.recommendation}</td>
+      </tr>`;
+    }).join('');
+
+    // Hourly overlap profile
+    document.getElementById('hourlyProfileTable').innerHTML = (sa.hourly_profile || []).map(h => {
+      const chips = h.breakdown.map(b => `<span class="chip">${b.agents} from ${b.shift}</span>`).join('');
+      const cpaClass = h.calls_per_agent > 10 ? 'danger' : h.calls_per_agent > 5 ? 'warning' : h.calls > 0 ? 'success' : '';
+      return `<tr>
+        <td><strong>${h.hour_label}</strong></td>
+        <td class="mono"><span class="badge info">${h.total_agents}</span></td>
+        <td class="hour-breakdown">${chips}<span class="equals">=</span><strong style="color:var(--accent);">${h.total_agents}</strong></td>
+        <td class="mono">${h.calls || '—'}</td>
+        <td class="mono">${h.received || '—'}</td>
+        <td class="mono">${h.missed > 0 ? `<span class="badge danger">${h.missed}</span>` : (h.calls > 0 ? '0' : '—')}</td>
+        <td class="mono">${h.calls > 0 ? `<span class="${cpaClass ? 'badge ' + cpaClass : ''}">${h.calls_per_agent}</span>` : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    // Swap suggestions
+    if (sa.swap_suggestions.length === 0) {
+      document.getElementById('swapSuggestions').innerHTML = `
+        <div class="insight" style="border-left-color:var(--success);">
+          <h3>✅ No swaps needed</h3><p>Your current staffing matches workload well across all shifts.</p>
+        </div>`;
+    } else {
+      document.getElementById('swapSuggestions').innerHTML = sa.swap_suggestions.map(sw => `
+        <div class="swap-card">
+          <div class="swap-flow">
+            <div class="swap-side from">
+              <div class="label">MOVE FROM</div>
+              <div class="shift-name">${sw.from_shift}</div>
+              <div class="reason">${sw.from_shift_reason}</div>
+            </div>
+            <div class="swap-arrow">→</div>
+            <div class="swap-side to">
+              <div class="label">MOVE TO</div>
+              <div class="shift-name">${sw.to_shift}</div>
+              <div class="reason">${sw.to_shift_reason}</div>
+            </div>
+          </div>
+          <div class="swap-candidates">
+            <span style="color:var(--muted);font-size:12px;">Suggested agents (${sw.count_needed} needed):</span>
+            ${sw.candidates.map(c => `<span class="swap-candidate">${c}</span>`).join('')}
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // SHIFT STRENGTH
+  const maxSh = Math.max(...d.shift_strength.map(s => s.count));
+  document.getElementById('shiftBars').innerHTML = d.shift_strength.map(s => `
+    <div class="hbar">
+      <div class="hbar-label">${s.shift}</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${(s.count/maxSh*100).toFixed(0)}%">${s.count}</div></div>
+      <div class="hbar-value">${s.count} agent${s.count !== 1 ? 's' : ''}</div>
+    </div>`).join('');
+
+  document.getElementById('shiftTable').innerHTML = d.shift_strength.map(s => `
+    <tr><td><strong>${s.shift}</strong></td><td><span class="badge info">${s.count}</span></td><td class="mono">${s.agents}</td></tr>
+  `).join('');
+
+  const allHours = Array.from({length:24}, (_,i)=>i);
+  const hourlyCount = allHours.map(h => {
+    const f = d.hourly_strength.find(hs => hs.hour === h);
+    return f ? f.count : 0;
+  });
+  destroyChart('hourlyStrength');
+  charts.hourlyStrength = new Chart(document.getElementById('chartHourlyStrength'), {
+    type: 'line',
+    data: { labels: allHours.map(h => `${String(h).padStart(2,'0')}:00`),
+      datasets: [{label:'Agents On Duty', data:hourlyCount, borderColor:'#5eb8ff', backgroundColor:'rgba(94,184,255,0.15)', fill:true, tension:0.3, pointRadius:3}]},
+    options: { responsive:true, maintainAspectRatio:false, scales: { y:{beginAtZero:true} } }
+  });
+
+  // FLOW
+  const merged = [];
+  for (let h = 0; h < 24; h++) {
+    const f = d.hourly_flow.find(x => x.hour === h);
+    const s = d.hourly_strength.find(x => x.hour === h);
+    const agents = s ? s.count : 0;
+    const total = f ? f.total : 0;
+    if (total === 0 && agents === 0) continue;
+    merged.push({
+      hour: h, hour_label: `${String(h).padStart(2,'0')}:00`,
+      agents, total, received: f?f.received:0, missed: f?f.missed:0,
+      miss_pct: f?f.miss_pct:0, calls_per_agent: f?f.calls_per_agent: (agents>0?0:null),
+      rec: f?f.rec: (agents===0?'💤 Off-hours':'✅ Idle'), rec_type: f?f.rec_type: (agents===0?'info':'success')
+    });
+  }
+
+  const peakH = [...merged].sort((a,b)=>b.total-a.total)[0];
+  const mostSt = [...merged].sort((a,b)=>b.agents-a.agents)[0];
+  const critH = merged.filter(r=>r.rec_type==='danger').length;
+  document.getElementById('flowStrip').innerHTML = `
+    <div class="stat-chip">Active hours: <strong>${merged.length}</strong></div>
+    ${peakH?`<div class="stat-chip">Peak call hour: <strong>${peakH.hour_label} (${peakH.total})</strong></div>`:''}
+    ${mostSt?`<div class="stat-chip">Most staffed: <strong>${mostSt.hour_label} (${mostSt.agents})</strong></div>`:''}
+    ${critH>0?`<div class="stat-chip danger">⚠️ Critical: <strong>${critH} hours</strong></div>`:''}
+  `;
+
+  const maxCPA = Math.max(...merged.filter(r=>r.calls_per_agent!=null).map(r=>r.calls_per_agent||0), 1);
+  document.getElementById('flowTable').innerHTML = merged.map(r => {
+    const rowC = r.rec_type==='danger'?'row-danger':r.rec_type==='warning'?'row-warning':'';
+    const cpa = r.calls_per_agent;
+    const barPct = cpa!=null ? Math.min(100, cpa/maxCPA*100) : 0;
+    const barC = cpa>8?'danger':cpa>5?'warning':'';
+    const missC = r.miss_pct>30?'danger':r.miss_pct>15?'warning':'';
+    return `<tr class="${rowC}">
+      <td><strong>${r.hour_label}</strong></td>
+      <td class="mono">${r.agents>0?`<span class="badge info">${r.agents}</span>`:'—'}</td>
+      <td class="mono">${r.total||'—'}</td>
+      <td class="mono">${r.received||'—'}</td>
+      <td class="mono">${r.missed>0?`<span class="badge danger">${r.missed}</span>`:(r.total>0?'0':'—')}</td>
+      <td class="mono">${r.total>0?`<span class="${missC?'badge '+missC:''}">${r.miss_pct}%</span>`:'—'}</td>
+      <td class="mono">${cpa!=null&&r.total>0?cpa:'—'}</td>
+      <td>${cpa!=null&&r.total>0?`<div class="mini-bar"><div class="mini-bar-track"><div class="mini-bar-fill ${barC}" style="width:${barPct}%"></div></div></div>`:'—'}</td>
+      <td><span class="badge ${r.rec_type}">${r.rec}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('peaksTable').innerHTML = d.peaks.map(p => `
+    <tr><td><strong>${p.time}</strong></td><td>${p.total}</td><td>${p.missed>0?`<span class="badge danger">${p.missed}</span>`:p.missed}</td></tr>
+  `).join('');
+
+  destroyChart('flow');
+  charts.flow = new Chart(document.getElementById('chartFlow'), {
+    type: 'bar',
+    data: { labels: merged.map(h=>h.hour_label),
+      datasets: [
+        {label:'Calls', data: merged.map(h=>h.total), backgroundColor:'rgba(0,217,164,0.6)', yAxisID:'y', order:2},
+        {label:'Missed', data: merged.map(h=>h.missed), backgroundColor:'#ff5970', yAxisID:'y', order:1},
+        {label:'Agents On Duty', data: merged.map(h=>h.agents), type:'line', borderColor:'#ffb547', backgroundColor:'#ffb547', yAxisID:'y1', tension:0.3, order:0, pointRadius:3}
+      ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      scales: { y:{beginAtZero:true}, y1:{beginAtZero:true, position:'right', grid:{display:false}} } }
+  });
+
+  // DEPTS
+  const orphanTotal = d.orphan_missed || 0;
+  document.getElementById('orphanNote').innerHTML = orphanTotal > 0
+    ? `<strong>📵 ${orphanTotal} orphan missed calls</strong> had no department. Distributed proportionally by traffic share.`
+    : `<strong>✅ No orphan calls</strong> — every missed call has a dept.`;
+
+  document.getElementById('deptTable').innerHTML = d.departments.map(x => {
+    const rowC = x.rec_type==='danger'?'row-danger':x.rec_type==='warning'?'row-warning':'';
+    return `<tr class="${rowC}">
+      <td><strong>${x.dept}</strong></td>
+      <td>${x.total}</td>
+      <td>${x.received}</td>
+      <td class="mono">${x.missed}</td>
+      <td class="mono">${x.orphan_share > 0 ? `<span class="badge orphan">+${x.orphan_share}</span>` : '—'}</td>
+      <td class="mono"><strong>${x.missed_adjusted}</strong></td>
+      <td class="mono">${x.miss_pct_adjusted}%</td>
+      <td class="mono">${fmtSec(x.avg_talk)}</td>
+      <td><span class="badge ${x.rec_type}">${x.rec}</span></td></tr>`;
+  }).join('');
+
+  // AGENTS
+  document.getElementById('peerDesc').textContent =
+    `Peer benchmarks — Ring: ${d.peer_avg.ring}s • Talk: ${d.peer_avg.talk}s • Miss rate: ${d.peer_avg.miss}%`;
+
+  document.getElementById('agentTable').innerHTML = d.agents.map(a => {
+    const rowC = a.severity==='danger'?'row-danger':a.severity==='warning'?'row-warning':'';
+    return `<tr class="${rowC}">
+      <td><strong>${a.name}</strong></td>
+      <td class="mono">${a.shift}</td>
+      <td>${a.total}</td>
+      <td>${a.received}</td>
+      <td>${a.missed > 0 ? `<span class="badge danger">${a.missed}</span>` : '0'}</td>
+      <td>${a.miss_pct}%</td>
+      <td class="mono">${a.avg_ring}s</td>
+      <td class="mono">${fmtSec(a.avg_talk)}</td>
+      <td class="mono">${a.total_talk_min}m</td>
+      <td><div class="flags">${a.flags.map(f => {
+        const g = f.includes('✅'), i = f.includes('ℹ️'), dg = f.includes('❌');
+        const c = g?'good':i?'info':dg?'danger':'warning';
+        return `<span class="flag ${c}">${f}</span>`;
+      }).join('')}</div></td>
+    </tr>`;
+  }).join('');
+
+  // MISSED
+  const peakMiss = d.missed_by_hour.length ? [...d.missed_by_hour].sort((a,b)=>b.count-a.count)[0] : null;
+  document.getElementById('missedKpi').innerHTML = `
+    <div class="kpi danger"><div class="kpi-label">Total Missed</div><div class="kpi-value">${d.meta.total_missed}</div><div class="kpi-sub">${d.meta.overall_miss_pct}%</div></div>
+    <div class="kpi warn"><div class="kpi-label">Orphan (No Dept)</div><div class="kpi-value">${d.orphan_missed || 0}</div><div class="kpi-sub">Distributed by traffic</div></div>
+    <div class="kpi warn"><div class="kpi-label">No Agent</div><div class="kpi-value">${d.missed_no_agent}</div><div class="kpi-sub">Routing/capacity</div></div>
+    <div class="kpi"><div class="kpi-label">Peak Miss Hour</div><div class="kpi-value">${peakMiss?peakMiss.hour:'-'}</div><div class="kpi-sub">Highest miss hour</div></div>
+  `;
+
+  destroyChart('missedHour');
+  charts.missedHour = new Chart(document.getElementById('chartMissedHour'), {
+    type: 'bar',
+    data: { labels: d.missed_by_hour.map(m=>m.hour),
+      datasets: [{label:'Missed', data: d.missed_by_hour.map(m=>m.count), backgroundColor:'#ff5970'}]},
+    options: { responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}} }
+  });
+
+  const mIns = [];
+  if (d.orphan_missed > 0) mIns.push({type:'warn', h:'📵 Orphan Calls', p:`${d.orphan_missed} missed with no dept.`});
+  if (d.missed_no_agent > 0) mIns.push({type:'danger', h:'🚫 No Agent Attempted', p:`${d.missed_no_agent} calls ended with no agent.`});
+  const dhm = d.departments.filter(x => x.miss_pct_adjusted > 15);
+  if (dhm.length) mIns.push({type:'warn', h:'🏢 High-miss depts', p:dhm.map(x=>`${x.dept} (${x.miss_pct_adjusted}%)`).join(', ')});
+  const ma = d.agents.filter(a => a.miss_pct > 15 && a.total >= 3);
+  if (ma.length) mIns.push({type:'warn', h:'👤 Agents missing calls', p:ma.map(a=>a.name).join(', ')});
+  if (!mIns.length) mIns.push({type:'', h:'✅ Good coverage', p:'No critical patterns.'});
+  document.getElementById('missedInsights').innerHTML = mIns.map(i => `<div class="insight ${i.type}"><h3>${i.h}</h3><p>${i.p}</p></div>`).join('');
+
+  // ============ MISS ROOT CAUSE ============
+  if (d.miss_root_cause && d.miss_root_cause.breakdown) {
+    const rc = d.miss_root_cause;
+    const maxCount = Math.max(1, ...rc.breakdown.map(b => b.count));
+    document.getElementById('rootCauseBreakdown').innerHTML = rc.breakdown.length === 0
+      ? '<div class="insight"><h3>✅ No missed calls to analyze</h3><p>Your team is catching everything in this date range.</p></div>'
+      : rc.breakdown.map(b => {
+          const sev = b.key === 'outside_shift_hours' || b.key === 'peak_overload' ? 'danger'
+                    : b.key === 'no_agent_routed' || b.key === 'slow_agent_individual' || b.key === 'long_ring_no_answer' || b.key === 'all_agents_busy' ? 'warning'
+                    : 'info';
+          const pctOfMax = (b.count / maxCount * 100).toFixed(0);
+          const examples = b.examples.length > 0 ? `
+            <div class="cause-examples">
+              <strong style="color:var(--accent);">Examples:</strong>
+              ${b.examples.map(e => `<div class="cause-example-row">
+                <span>📞 <strong>${e.caller || '(unknown)'}</strong></span>
+                <span>🕐 ${e.time}</span>
+                ${e.dept ? `<span>🏢 ${e.dept}</span>` : ''}
+                ${e.agent ? `<span>👤 ${e.agent}</span>` : '<span style="color:var(--danger);">No agent</span>'}
+                ${e.ring_sec !== undefined ? `<span>⏱️ Ring ${e.ring_sec}s</span>` : ''}
+              </div>`).join('')}
+            </div>` : '';
+          return `<div class="cause-card ${sev}">
+            <div class="cause-header">
+              <div>
+                <div class="cause-title">${b.label}</div>
+                <div class="cause-desc">${b.description}</div>
+              </div>
+              <div class="cause-count ${sev}">${b.count} (${b.pct}%)</div>
+            </div>
+            <div class="cause-bar-track"><div class="cause-bar-fill ${sev}" style="width:${pctOfMax}%"></div></div>
+            ${examples}
+          </div>`;
+        }).join('');
+
+    document.getElementById('rootCauseInsights').innerHTML = rc.insights.length === 0
+      ? '<div class="insight"><h3>✅ No urgent fixes</h3><p>Miss patterns do not show systemic issues.</p></div>'
+      : rc.insights.map(i => {
+          const cls = i.severity === 'danger' ? 'danger' : i.severity === 'warning' ? 'warn' : '';
+          return `<div class="insight ${cls}"><h3>${i.title}</h3><p>${i.detail}</p></div>`;
+        }).join('');
+  }
+
+  // ============ SHIFT REDESIGN ============
+  if (d.shift_redesign) {
+    const rd = d.shift_redesign;
+    document.getElementById('redesignStrip').innerHTML = `
+      <div class="stat-chip">Target: <strong>≤${rd.target_calls_per_agent} calls/agent</strong></div>
+      ${rd.hours_no_coverage.length ? `<div class="stat-chip danger">🚨 Uncovered Hours: <strong>${rd.hours_no_coverage.length}</strong></div>` : ''}
+      ${rd.hours_under_staffed.length ? `<div class="stat-chip warning">⚠️ Under-staffed: <strong>${rd.hours_under_staffed.length}</strong></div>` : ''}
+      ${rd.hours_over_staffed.length ? `<div class="stat-chip">💤 Over-staffed: <strong>${rd.hours_over_staffed.length}</strong></div>` : ''}
+    `;
+
+    document.getElementById('redesignRecs').innerHTML = rd.recommendations.length === 0
+      ? '<div class="insight" style="border-left-color:var(--success);"><h3>✅ Shift layout looks good</h3><p>Your current shifts align with call patterns.</p></div>'
+      : rd.recommendations.map(r => `
+          <div class="redesign-rec ${r.severity}">
+            <div class="rec-type">${r.type}</div>
+            <div class="rec-title">${r.title}</div>
+            <div class="rec-detail">${r.detail}</div>
+          </div>`).join('');
+
+    document.getElementById('redesignGapTable').innerHTML = rd.hours_with_traffic.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;color:var(--muted);">No traffic hours to analyze</td></tr>'
+      : rd.hours_with_traffic.map(h => {
+          const gapClass = h.gap > 0 ? 'positive' : h.gap < 0 ? 'negative' : 'zero';
+          const status = h.gap > 2 ? '<span class="badge danger">🚨 Critical</span>'
+                       : h.gap > 0 ? '<span class="badge warning">⚠️ Short</span>'
+                       : h.gap < 0 ? '<span class="badge info">💤 Excess</span>'
+                       : '<span class="badge success">✅ Balanced</span>';
+          return `<tr>
+            <td><strong>${h.label}</strong></td>
+            <td class="mono">${h.calls}</td>
+            <td class="mono">${h.missed > 0 ? `<span class="badge danger">${h.missed}</span>` : '0'}</td>
+            <td class="mono">${h.current_agents}</td>
+            <td class="mono">${h.ideal_agents}</td>
+            <td class="gap-cell ${gapClass}">${h.gap > 0 ? '+' + h.gap : h.gap}</td>
+            <td>${status}</td>
+          </tr>`;
+        }).join('');
+
+    document.getElementById('redesignLayout').innerHTML = rd.suggested_layout.length === 0
+      ? '<div class="insight"><h3>ℹ️ Insufficient data</h3><p>Need more call data to suggest a layout.</p></div>'
+      : rd.suggested_layout.map(s => `
+          <div class="shift-suggest">
+            <div class="shift-time">${s.shift}</div>
+            <div class="shift-agents">${s.suggested_agents} agents</div>
+            <div class="shift-reason">${s.rationale}</div>
+          </div>`).join('');
+  }
+}
+
+if (API_URL) loadData(false);
+setInterval(() => { if (API_URL && DATA) loadData(false); }, 60000);
+</script>
+</body>
+</html>

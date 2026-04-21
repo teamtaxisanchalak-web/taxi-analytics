@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Taxi Sanchalak — Command Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a18;font-size:14px;min-height:100vh}
+.hdr{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:99;gap:10px;flex-wrap:wrap}
+.logo{font-size:15px;font-weight:600}.logo b{color:#2563eb}
+.sw{display:flex;background:#f0efe9;border-radius:6px;border:1px solid #ddd;overflow:hidden}
+.sw button{padding:5px 18px;font-size:13px;font-weight:500;border:none;background:transparent;color:#666;cursor:pointer}
+.sw button.on{background:#2563eb;color:#fff}
+.hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid}
+.pill.ok{background:#eef5ee;color:#2d6a2d;border-color:#b8d8b8}
+.pill.off{background:#fdf0ee;color:#c0392b;border-color:#f5c6c0}
+.pill.loading{background:#fdf4e7;color:#b85c00;border-color:#f5d9a8}
+.btn{font-family:inherit;font-size:12px;font-weight:500;padding:5px 12px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#333;cursor:pointer}
+.btn:hover{background:#f0efe9}
+.btn.pri{background:#2563eb;color:#fff;border-color:#2563eb}
+.cbar{background:#fff;border-bottom:1px solid #eee;padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+select,input[type=date],input[type=time]{font-family:inherit;font-size:13px;padding:5px 9px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#333;outline:none}
+.main{max-width:1400px;margin:0 auto;padding:16px 20px}
+.page{display:none}.page.on{display:block}
+.alert{border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+.alert.red{background:#fdf0ee;border:1px solid #f5c6c0;color:#c0392b;display:none}
+.mrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.mc{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:13px 15px}
+.mc .l{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.mc .v{font-size:24px;font-weight:700;line-height:1}
+.mc .s{font-size:11px;color:#999;margin-top:3px}
+.tabs{display:flex;border-bottom:1px solid #e5e5e5;margin-bottom:16px;overflow-x:auto}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:#888;white-space:nowrap}
+.tab.on{color:#2563eb;border-bottom-color:#2563eb}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:14px}
+.ch{padding:11px 15px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.ct{font-size:11px;font-weight:700;color:#777;text-transform:uppercase;letter-spacing:.06em}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;font-size:11px;font-weight:700;color:#999;border-bottom:1px solid #eee;background:#fafafa;white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+td{padding:8px 12px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
+.br{background:#fdf0ee;color:#c0392b;border-color:#f5c6c0}
+.ba{background:#fdf4e7;color:#b85c00;border-color:#f5d9a8}
+.by{background:#fdfae7;color:#8a6d00;border-color:#ecdfa0}
+.bg{background:#eef5ee;color:#2d6a2d;border-color:#b8d8b8}
+.bb{background:#eef3fc;color:#1a4fa0;border-color:#b8cef5}
+.bp{background:#f3f0ff;color:#5b21b6;border-color:#c4b5fd}
+.plan-354{background:#eef3fc;color:#1a4fa0;border-color:#b8cef5}
+.plan-999{background:#f3f0ff;color:#5b21b6;border-color:#c4b5fd}
+.plan-179{background:#eef5ee;color:#2d6a2d;border-color:#b8d8b8}
+.plan-299{background:#fdf4e7;color:#b85c00;border-color:#f5d9a8}
+.bar{background:#eee;border-radius:3px;height:5px;display:inline-block;vertical-align:middle;margin-left:5px;min-width:50px}
+.bar div{height:5px;border-radius:3px}
+.tbtn{font-family:inherit;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;cursor:pointer;border:1px solid}
+.wa{background:#eef5ee;color:#2d6a2d;border-color:#b8d8b8}.wa:hover{background:#b8d8b8}
+.ca{background:#eef3fc;color:#1a4fa0;border-color:#b8cef5;margin-left:4px}.ca:hover{background:#b8cef5}
+.tier-btns{display:flex;gap:6px;flex-wrap:wrap}
+.tb{font-family:inherit;font-size:12px;font-weight:500;padding:4px 12px;border-radius:20px;border:1px solid #ddd;background:#fff;color:#888;cursor:pointer}
+.tb.on{background:#f0efe9;color:#333}
+.tb.tr.on{background:#fdf0ee;color:#c0392b;border-color:#f5c6c0}
+.tb.ta.on{background:#fdf4e7;color:#b85c00;border-color:#f5d9a8}
+.tb.ty.on{background:#fdfae7;color:#8a6d00;border-color:#ecdfa0}
+.pgn{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid #f0f0f0;background:#fafafa;flex-wrap:wrap;gap:8px}
+.pi{font-size:12px;color:#999}
+.pb{display:flex;gap:3px}
+.pb button{font-family:inherit;font-size:12px;font-weight:500;padding:3px 9px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#666;cursor:pointer;min-width:30px}
+.pb button.on{background:#2563eb;color:#fff;border-color:#2563eb}
+.pb button:disabled{opacity:.35;cursor:not-allowed}
+.psz{font-family:inherit;font-size:12px;padding:3px 6px;border:1px solid #ddd;border-radius:5px;background:#fff;color:#333}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:800px){.g2,.g3{grid-template-columns:1fr}}
+.ldr{text-align:center;padding:50px;color:#999}
+.spin{width:28px;height:28px;border:2px solid #e5e5e5;border-top-color:#2563eb;border-radius:50%;animation:sp .7s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:24px;color:#bbb;font-size:13px}
+.mono{font-family:'DM Mono',monospace;font-size:12px}
+.si{font-family:inherit;font-size:13px;padding:5px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;color:#333;outline:none;min-width:170px}
+.ss{padding:14px}
+.sr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ro{background:#f8f8f8;border-radius:6px;padding:13px;font-size:13px;color:#666;line-height:2;min-height:70px}
+.ro b{color:#333}
+.tech{background:#fdf0ee;border:1px solid #f5c6c0;border-radius:8px;padding:13px;margin-bottom:14px;display:none}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:10px;padding:20px;max-width:420px;width:90%;border:1px solid #ddd;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:3px}
+.modal .sub{font-size:12px;color:#999;margin-bottom:12px}
+textarea{font-family:inherit;width:100%;font-size:13px;padding:9px;border:1px solid #ddd;border-radius:6px;background:#f8f8f8;color:#333;resize:vertical;min-height:90px;outline:none}
+.ma{display:flex;gap:8px;margin-top:10px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">Taxi <b>Sanchalak</b> — Command Center</div>
+    <div class="sw">
+      <button class="on" onclick="swAgent('booking',this)">Bookings</button>
+      <button onclick="swAgent('recharge',this)">Recharge</button>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <span class="pill loading" id="b-pill">● Bookings</span>
+    <span class="pill loading" id="r-pill">● Recharge</span>
+    <span id="upd" style="font-size:12px;color:#999"></span>
+    <button class="btn" onclick="loadAll()">↻ Refresh</button>
+    <button class="btn pri" onclick="doExport()">↓ Export</button>
+  </div>
+</div>
+
+<div class="cbar">
+  <div id="b-ctrl" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <select id="b-dr" onchange="applyBF()">
+      <option value="all" selected>All time</option>
+      <option value="today">Today (booking date)</option>
+      <option value="7">Last 7 days</option>
+      <option value="30">Last 30 days</option>
+      <option value="custom">Custom range</option>
+    </select>
+    <div id="b-cr" style="display:none;gap:8px;align-items:center">
+      <input type="date" id="b-df" onchange="applyBF()">
+      <span style="font-size:13px;color:#999;font-weight:500">to</span>
+      <input type="date" id="b-dt" onchange="applyBF()">
+      <span style="font-size:11px;color:#aaa">← same date both = single day</span>
+    </div>
+    <span id="b-dlbl" style="font-size:12px;color:#2563eb;font-weight:500"></span>
+  </div>
+  <div id="r-ctrl" style="display:none;align-items:center;gap:10px;flex-wrap:wrap">
+    <select id="r-dr" onchange="applyRF()">
+      <option value="1230" selected>Today 12:30→12:30</option>
+      <option value="today">Today full</option>
+      <option value="7">Last 7 days</option>
+      <option value="all">All time</option>
+      <option value="custom">Custom</option>
+    </select>
+    <div id="r-cr" style="display:none;gap:8px;align-items:center">
+      <input type="date" id="r-df" onchange="applyRF()">
+      <span style="font-size:13px;color:#999">to</span>
+      <input type="date" id="r-dt" onchange="applyRF()">
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- BOOKING -->
+<div id="pg-booking" class="page on">
+  <div class="alert red" id="b-alert"></div>
+  <div class="ldr" id="b-ldr"><div class="spin"></div>Loading booking data...</div>
+  <div id="b-body" style="display:none">
+    <div class="mrow" id="b-met"></div>
+    <div class="tabs">
+      <div class="tab on" onclick="bTab('agents',this)">Agent Performance</div>
+      <div class="tab" onclick="bTab('routes',this)">Route Analysis</div>
+      <div class="tab" onclick="bTab('reasons',this)">Delete &amp; Cancel Reasons</div>
+      <div class="tab" onclick="bTab('schedule',this)">Schedule &amp; Alerts</div>
+    </div>
+
+    <div id="b-t-agents">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <div class="tier-btns">
+          <button class="tb on" onclick="bSetTier('all',this)">All agents</button>
+          <button class="tb tr" onclick="bSetTier('red',this)">🔴 &gt;80% expiry</button>
+          <button class="tb ta" onclick="bSetTier('amber',this)">🟠 50–80%</button>
+          <button class="tb ty" onclick="bSetTier('yellow',this)">🟡 30–50%</button>
+        </div>
+        <input class="si" id="b-srch" placeholder="Search mobile number..." oninput="bAPG=1;renderAgents()">
+      </div>
+      <div class="card"><div class="tw"><table>
+        <thead><tr><th>#</th><th>Agent</th><th>Total</th><th>Completed</th><th>Expired</th><th>Cancelled</th><th>Deleted</th><th>Expiry %</th><th>Risk</th><th>Actions</th></tr></thead>
+        <tbody id="b-atb"></tbody>
+      </table>
+      <div class="pgn"><span class="pi" id="b-ai"></span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#999">Rows:</span>
+          <select class="psz" onchange="bAPS=+this.value;bAPG=1;renderAgents()"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option><option value="200">200</option></select>
+          <div class="pb" id="b-ab"></div>
+        </div>
+      </div></div></div>
+    </div>
+
+    <div id="b-t-routes" style="display:none">
+      <div class="card"><div class="ch"><span class="ct">Top routes by expired bookings</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Route</th><th>Total</th><th>Expired</th><th>Completed</th><th>Cancelled</th><th>Deleted</th><th>Expiry %</th></tr></thead>
+        <tbody id="b-rtb"></tbody>
+      </table><div class="pgn"><span class="pi" id="b-ri"></span><div class="pb" id="b-rb"></div></div></div></div>
+    </div>
+
+    <div id="b-t-reasons" style="display:none">
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch">
+          <span class="ct">Agent ratio — expiry &amp; cancellation</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn pri" id="rs-c" onclick="bRS='combined';bRatioPG=1;renderReasons()">Combined</button>
+            <button class="btn" id="rs-e" onclick="bRS='expired';bRatioPG=1;renderReasons()">By expiry</button>
+            <button class="btn" id="rs-a" onclick="bRS='cancelled';bRatioPG=1;renderReasons()">By cancellation</button>
+          </div>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>#</th><th>Agent</th><th>Total</th><th>Expired</th><th>Expiry %</th><th>Cancelled</th><th>Cancel %</th><th>Combined %</th><th>Risk</th><th>Actions</th></tr></thead>
+          <tbody id="b-ratiotb"></tbody>
+        </table>
+        <div class="pgn"><span class="pi" id="b-ratioi"></span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="psz" onchange="bRatioPS=+this.value;bRatioPG=1;renderReasons()"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select>
+            <div class="pb" id="b-ratiob"></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">Deleted booking reasons</span><span class="badge br" id="b-delc"></span></div>
+        <div class="tw"><table>
+          <thead><tr><th>Reason</th><th>Count</th><th>%</th><th>Agents responsible (×count each)</th></tr></thead>
+          <tbody id="b-deltb"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">Cancelled by agent reasons</span><span class="badge ba" id="b-canc"></span></div>
+        <div class="tw"><table>
+          <thead><tr><th>Reason</th><th>Count</th><th>%</th><th>Agents responsible (×count each)</th></tr></thead>
+          <tbody id="b-cantb"></tbody>
+        </table></div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><span class="ct">Per-agent reason details</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <select class="psz" id="b-rfil" onchange="bMatrixPG=1;renderMatrix()" style="max-width:220px;font-size:12px"><option value="all">All reasons</option></select>
+            <select class="psz" id="b-sfil" onchange="bMatrixPG=1;renderMatrix()"><option value="all">All statuses</option><option value="Deleted">Deleted only</option><option value="Cancelled">Cancelled only</option></select>
+          </div>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>#</th><th>Agent</th><th>Status</th><th>Reason</th><th>Count</th><th>% of agent total</th><th>Actions</th></tr></thead>
+          <tbody id="b-mtb"></tbody>
+        </table>
+        <div class="pgn"><span class="pi" id="b-mi"></span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="psz" onchange="bMatrixPS=+this.value;bMatrixPG=1;renderMatrix()"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select>
+            <div class="pb" id="b-mb"></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <div id="b-t-schedule" style="display:none">
+      <div class="g2">
+        <div>
+          <div class="card"><div class="ch"><span class="ct">Settings</span></div><div class="ss">
+            <div class="sr"><input type="checkbox" id="b-auto" checked style="width:15px;height:15px"><label for="b-auto" style="font-size:13px;color:#666">Auto-refresh every 5 min</label></div>
+            <div class="sr"><label style="font-size:13px;color:#666">Report time:</label><input type="time" id="b-rt" value="09:00"></div>
+            <button class="btn pri" onclick="bGenReport()">Generate report</button>
+          </div></div>
+          <div class="card"><div class="ch"><span class="ct">Alert thresholds</span></div><div class="ss">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer"><input type="checkbox" checked style="width:14px;height:14px"><span style="color:#c0392b">🔴 Alert &gt;80% expiry</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:10px;cursor:pointer"><input type="checkbox" checked style="width:14px;height:14px"><span style="color:#b85c00">🟠 Alert 50–80% expiry</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" style="width:14px;height:14px"><span style="color:#8a6d00">🟡 Alert 30–50% expiry</span></label>
+          </div></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Report preview</span></div><div class="ss">
+          <div class="ro" id="b-rout">Click "Generate report" to see summary</div>
+          <button class="btn" style="margin-top:10px" onclick="exportBCSV()">↓ Export agent CSV</button>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECHARGE -->
+<div id="pg-recharge" class="page">
+  <div class="alert red" id="r-alert"></div>
+  <div class="tech" id="r-tech"></div>
+  <div class="ldr" id="r-ldr"><div class="spin"></div>Loading recharge data...</div>
+  <div id="r-body" style="display:none">
+    <div class="mrow" id="r-met"></div>
+    <div class="tabs">
+      <div class="tab on" onclick="rTab('overview',this)">Overview</div>
+      <div class="tab" onclick="rTab('failed',this)">Failed Recharges</div>
+      <div class="tab" onclick="rTab('unable',this)">Unable to Recharge</div>
+      <div class="tab" onclick="rTab('tech',this)">Tech / Error Analysis</div>
+    </div>
+    <div id="r-t-overview">
+      <div class="card"><div class="ch"><span class="ct">All captured recharges</span></div>
+      <div class="tw"><table><thead><tr><th>#</th><th>Time</th><th>Contact</th><th>Email</th><th>Amount</th><th>Plan</th><th>Method</th><th>Payment ID</th></tr></thead>
+      <tbody id="r-ctb"></tbody></table>
+      <div class="pgn"><span class="pi" id="r-ci"></span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="psz" onchange="rCPS=+this.value;rCPG=1;renderROverview()"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select>
+          <div class="pb" id="r-cb"></div>
+        </div>
+      </div></div></div>
+    </div>
+    <div id="r-t-failed" style="display:none">
+      <div class="g3" id="r-fmet"></div>
+      <div class="card" style="margin-top:14px"><div class="ch"><span class="ct">Failed details</span></div>
+      <div class="tw"><table><thead><tr><th>#</th><th>Time</th><th>Contact</th><th>Email</th><th>Amount</th><th>Plan</th><th>Error</th><th>Description</th><th>Action</th></tr></thead>
+      <tbody id="r-ftb"></tbody></table>
+      <div class="pgn"><span class="pi" id="r-fi"></span><div class="pb" id="r-fb"></div></div></div></div>
+      <div class="g2" style="margin-top:14px">
+        <div class="card"><div class="ch"><span class="ct">Failed → recharged later</span></div>
+        <div class="tw"><table><thead><tr><th>Contact</th><th>Failed at</th><th>Recharged at</th><th>Gap</th><th>Amount</th></tr></thead><tbody id="r-ltb"></tbody></table></div></div>
+        <div class="card"><div class="ch"><span class="ct">Failure reasons</span></div>
+        <div class="tw"><table><thead><tr><th>Error code</th><th>Description</th><th>Count</th></tr></thead><tbody id="r-errtb"></tbody></table></div></div>
+      </div>
+    </div>
+    <div id="r-t-unable" style="display:none">
+      <div class="alert red" id="r-unsum" style="display:block;margin-bottom:14px"></div>
+      <div class="card"><div class="ch"><span class="ct">Users who failed Rs354/Rs999 and did NOT recharge</span><button class="btn" onclick="exportUnable()">Export</button></div>
+      <div class="tw"><table><thead><tr><th>#</th><th>Contact</th><th>Email</th><th>Amount</th><th>Plan</th><th>Failed at</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="r-untb"></tbody></table>
+      <div class="pgn"><span class="pi" id="r-uni"></span><div class="pb" id="r-unb"></div></div></div></div>
+    </div>
+    <div id="r-t-tech" style="display:none">
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Error breakdown</span></div>
+        <div class="tw"><table><thead><tr><th>Error code</th><th>Count</th><th>%</th><th>Severity</th></tr></thead><tbody id="r-techtb"></tbody></table></div></div>
+        <div class="card"><div class="ch"><span class="ct">Full error log</span></div>
+        <div class="tw"><table><thead><tr><th>Time</th><th>Contact</th><th>Error</th><th>Description</th><th>Method</th><th>Amount</th></tr></thead><tbody id="r-logtb"></tbody></table></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal-bg" id="mdl">
+  <div class="modal">
+    <h3 id="m-t">Message</h3><div class="sub" id="m-s"></div>
+    <textarea id="m-msg" rows="5"></textarea>
+    <div class="ma">
+      <button class="btn" onclick="closeMdl()">Cancel</button>
+      <button class="wa tbtn" style="font-size:13px;padding:5px 14px;border-radius:6px" onclick="copyMsg()">Copy message</button>
+      <button class="ca tbtn" style="font-size:13px;padding:5px 14px;border-radius:6px" onclick="callAg()">Call now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const B_ID='13lt1WZ9E0sV_7FR7UziCyvTk56t3HtFgFrCMWgNWbKY';
+const R_ID='1q49s0po_wRMrRKBWIzMgAcTuYfumSSycK0jLRE6Mj1Y';
+let bAll=[],bFilt=[],bTier='all',bRS='combined';
+let rAll=[],rFilt=[],curAg=null,curPage='booking';
+let bAPG=1,bAPS=50,bRPG=1,bRPS=20,bRatioPG=1,bRatioPS=50,bMatrixPG=1,bMatrixPS=50;
+let rCPG=1,rCPS=50,rFPG=1,rFPS=50,rUPG=1,rUPS=50;
+const $=id=>document.getElementById(id);
+
+const SHEET_TABS={
+  '13lt1WZ9E0sV_7FR7UziCyvTk56t3HtFgFrCMWgNWbKY': 'ALL BOOKINGS',
+  '1q49s0po_wRMrRKBWIzMgAcTuYfumSSycK0jLRE6Mj1Y': 'razorpay'
+};
+
+function fetchSheet(sid){
+  const tab = SHEET_TABS[sid] || 'Sheet1';
+  // Direct Google Sheets CSV - works from HTTPS (GitHub Pages)
+  // Falls back to proxy if running locally
+  const directUrl = 'https://docs.google.com/spreadsheets/d/'+sid+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(tab);
+  const proxyUrl  = 'http://localhost:8765/sheet/'+sid;
+
+  // Try direct first (works on GitHub Pages / any HTTPS host)
+  return fetch(directUrl)
+    .then(r=>{
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    })
+    .then(txt=>{
+      if(!txt || txt.trim().startsWith('<!')) throw new Error('Not public or wrong tab');
+      return Papa.parse(txt,{header:true,skipEmptyLines:true}).data;
+    })
+    .catch(()=>{
+      // Fallback to local proxy (works when running START.bat locally)
+      return fetch(proxyUrl)
+        .then(r=>{if(!r.ok)throw new Error('Proxy error '+r.status);return r.text();})
+        .then(txt=>{if(!txt||txt.startsWith('ERROR'))throw new Error(txt||'Empty');return Papa.parse(txt,{header:true,skipEmptyLines:true}).data;});
+    });
+}
+
+function setPill(id,st,lbl){const el=$(id);el.className='pill '+st;el.textContent='● '+lbl;}
+function showAlert(id,msg){const el=$(id);if(el){el.style.display='block';el.textContent='⚠ '+msg;}}
+
+function loadBooking(){
+  setPill('b-pill','loading','Bookings');$('b-ldr').style.display='block';$('b-body').style.display='none';
+  fetchSheet(B_ID)
+    .then(d=>{bAll=d;setPill('b-pill','ok','Bookings');$('b-alert').style.display='none';})
+    .catch(e=>{setPill('b-pill','off','Bookings');showAlert('b-alert','Cannot load booking sheet: '+e.message+'. Showing sample data.');if(!bAll.length)bSample();})
+    .finally(()=>{$('b-ldr').style.display='none';$('b-body').style.display='block';applyBF();$('upd').textContent='Updated '+new Date().toLocaleTimeString();});
+}
+
+function loadRecharge(){
+  setPill('r-pill','loading','Recharge');$('r-ldr').style.display='block';$('r-body').style.display='none';
+  fetchSheet(R_ID)
+    .then(raw=>{const seen=new Set();rAll=raw.filter(r=>{const p=r.payment_id||'';if(seen.has(p))return false;seen.add(p);return true;});setPill('r-pill','ok','Recharge');$('r-alert').style.display='none';})
+    .catch(e=>{setPill('r-pill','off','Recharge');showAlert('r-alert','Cannot load recharge sheet: '+e.message);if(!rAll.length)rSample();})
+    .finally(()=>{$('r-ldr').style.display='none';$('r-body').style.display='block';applyRF();});
+}
+function loadAll(){loadBooking();loadRecharge();}
+
+// ── DATE FILTER (VERIFIED) ─────────────────────────────────────────
+// Converts "2026/4/15" → "2026-04-15", handles single digit month/day
+function p2(n){return String(n).padStart(2,'0');}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+
+// Use TIMESTAMP as primary date (matches pivot report - booking creation date)
+// Pickup Date is the future trip date - gives wrong counts
+function getBookingDateStr(r){
+  // 1. timestamp: "2026-04-15 19:10:49" → "2026-04-15"
+  const ts=(r.timestamp||'').trim();
+  if(ts&&ts.length>=10&&ts!=='nan')return ts.slice(0,10);
+  // 2. Updated Date: "2026-04-15 18:44:21" → "2026-04-15"
+  const ud=(r['Updated Date']||'').trim();
+  if(ud&&ud.length>=10&&ud!=='nan')return ud.slice(0,10);
+  // 3. Fallback: Pickup Date "2026/4/15" → "2026-04-15"
+  const pd=(r['Pickup Date']||'').trim();
+  if(pd){
+    const pts=pd.split('/');
+    if(pts.length===3&&pts[0].length===4)
+      return pts[0]+'-'+p2(parseInt(pts[1]))+'-'+p2(parseInt(pts[2]));
+  }
+  return null;
+}
+
+function bGetRange(){
+  const s=$('b-dr').value,td=todayStr();
+  if(s==='all')  return{from:'2000-01-01',to:'2099-12-31'};
+  if(s==='today')return{from:td,to:td};
+  if(s==='7'){const d=new Date();d.setDate(d.getDate()-6);return{from:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),to:td};}
+  if(s==='30'){const d=new Date();d.setDate(d.getDate()-29);return{from:d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),to:td};}
+  if(s==='custom'){
+    const fv=($('b-df').value||'').trim();
+    const tv=($('b-dt').value||'').trim();
+    if(!fv&&!tv)return{from:'2000-01-01',to:'2099-12-31'};
+    const f=fv||tv, t=tv||fv;
+    return f>t?{from:t,to:f}:{from:f,to:t}; // auto-swap if reversed
+  }
+  return{from:'2000-01-01',to:'2099-12-31'};
+}
+
+function applyBF(){
+  $('b-cr').style.display=$('b-dr').value==='custom'?'flex':'none';
+  const{from,to}=bGetRange();
+  bFilt=bAll.filter(r=>{
+    const ds=getBookingDateStr(r);
+    if(!ds)return true;
+    return ds>=from&&ds<=to;
+  });
+  bAPG=1;bRPG=1;bRatioPG=1;bMatrixPG=1;
+  const lbl=$('b-dlbl');
+  if(lbl)lbl.textContent='📅 '+(from===to?from:from+' → '+to)+' ('+bFilt.length+' bookings)';
+  renderBMet();renderAgents();bCheckAlert();
+}
+
+// ── BOOKING METRICS (status values verified from sheet) ───────────
+function renderBMet(){
+  const t=bFilt.length;
+  const exp  =bFilt.filter(r=>r.Status==='Expired').length;
+  const comp =bFilt.filter(r=>r.Status==='completed').length;
+  const canc =bFilt.filter(r=>r.Status==='Cancelled by Agent'||r.Status==='cancelled').length;
+  const del  =bFilt.filter(r=>r.Status==='Deleted').length;
+  const act  =bFilt.filter(r=>r.Status==='Assigned'||r.Status==='Picked'||r.Status==='CBD').length;
+  const ag   =new Set(bFilt.map(r=>r.Agent).filter(Boolean)).size;
+  $('b-met').innerHTML=`
+    <div class="mc"><div class="l">Expired</div><div class="v" style="color:#c0392b">${exp}</div><div class="s">${t?Math.round(exp/t*100):0}% of ${t}</div></div>
+    <div class="mc"><div class="l">Completed</div><div class="v" style="color:#2d6a2d">${comp}</div><div class="s">${t?Math.round(comp/t*100):0}% of ${t}</div></div>
+    <div class="mc"><div class="l">Cancelled by Agent</div><div class="v" style="color:#b85c00">${canc}</div><div class="s">${t?Math.round(canc/t*100):0}% of ${t}</div></div>
+    <div class="mc"><div class="l">Deleted</div><div class="v" style="color:#888">${del}</div><div class="s">${t?Math.round(del/t*100):0}% of ${t}</div></div>
+    <div class="mc"><div class="l">Active now</div><div class="v" style="color:#1a4fa0">${act}</div><div class="s">Assigned+Picked+CBD</div></div>
+    <div class="mc"><div class="l">Total</div><div class="v">${t.toLocaleString()}</div><div class="s">in period</div></div>
+    <div class="mc"><div class="l">Active agents</div><div class="v" style="color:#5b21b6">${ag}</div><div class="s">unique numbers</div></div>`;
+}
+
+// ── AGENT STATS ───────────────────────────────────────────────────
+function bStats(){
+  const m={};
+  bFilt.forEach(r=>{
+    const ag=r.Agent;if(!ag)return;
+    if(!m[ag])m[ag]={agent:ag,total:0,expired:0,completed:0,cancelled:0,deleted:0};
+    m[ag].total++;
+    if(r.Status==='Expired')m[ag].expired++;
+    else if(r.Status==='completed')m[ag].completed++;
+    else if(r.Status==='Cancelled by Agent'||r.Status==='cancelled')m[ag].cancelled++;
+    else if(r.Status==='Deleted')m[ag].deleted++;
+  });
+  return Object.values(m).map(a=>({...a,
+    expPct:a.total?Math.round(a.expired/a.total*100):0,
+    canPct:a.total?Math.round(a.cancelled/a.total*100):0,
+    combined:a.total?Math.round((a.expired+a.cancelled)/a.total*100):0
+  })).sort((a,b)=>b.expPct-a.expPct);
+}
+
+function tier(p){return p>80?'red':p>=50?'amber':p>=30?'yellow':'green';}
+function tierLbl(p){return p>80?'Critical':p>=50?'High':p>=30?'Medium':'Low';}
+function tierCls(p){return p>80?'br':p>=50?'ba':p>=30?'by':'bg';}
+function bCol(t){return t==='red'?'#c0392b':t==='amber'?'#b85c00':t==='yellow'?'#8a6d00':'#2d6a2d';}
+
+function bSetTier(t,el){bTier=t;bAPG=1;document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));if(el)el.classList.add('on');renderAgents();}
+
+function renderAgents(){
+  let s=bStats();
+  const srch=($('b-srch').value||'').trim();
+  if(srch)s=s.filter(a=>String(a.agent).includes(srch));
+  if(bTier!=='all')s=s.filter(a=>tier(a.expPct)===bTier);
+  const pg=paginate(s,bAPG,bAPS),off=(bAPG-1)*bAPS;
+  $('b-atb').innerHTML=pg.map((a,i)=>`<tr>
+    <td style="color:#bbb">${off+i+1}</td>
+    <td><span class="mono">${a.agent}</span></td>
+    <td>${a.total}</td>
+    <td style="color:#2d6a2d">${a.completed}</td>
+    <td style="color:#c0392b;font-weight:600">${a.expired}</td>
+    <td style="color:#b85c00">${a.cancelled}</td>
+    <td style="color:#888">${a.deleted}</td>
+    <td><b>${a.expPct}%</b><span class="bar"><div style="width:${Math.min(a.expPct,100)}%;background:${bCol(tier(a.expPct))}"></div></span></td>
+    <td><span class="badge ${tierCls(a.expPct)}">${tierLbl(a.expPct)}</span></td>
+    <td><button class="tbtn wa" onclick="openMdl('${a.agent}','b-wa')">WA</button><button class="tbtn ca" onclick="openMdl('${a.agent}','b-call')">Call</button></td>
+  </tr>`).join('')||'<tr><td colspan="10" class="empty">No agents found</td></tr>';
+  pgRender('b-ai','b-ab',s.length,bAPG,bAPS,p=>{bAPG=p;renderAgents();});
+}
+
+function renderRoutes(){
+  const m={};
+  bFilt.forEach(r=>{
+    const k=(r.Pickup||'?').trim()+' → '+(r.Drop||'?').trim();
+    if(!m[k])m[k]={r:k,total:0,expired:0,completed:0,cancelled:0,deleted:0};
+    m[k].total++;
+    if(r.Status==='Expired')m[k].expired++;
+    else if(r.Status==='completed')m[k].completed++;
+    else if(r.Status==='Cancelled by Agent'||r.Status==='cancelled')m[k].cancelled++;
+    else if(r.Status==='Deleted')m[k].deleted++;
+  });
+  const routes=Object.values(m).sort((a,b)=>b.expired-a.expired);
+  const pg=paginate(routes,bRPG,bRPS);
+  $('b-rtb').innerHTML=pg.map(r=>{
+    const ep=r.total?Math.round(r.expired/r.total*100):0;
+    const c=ep>50?'#c0392b':ep>30?'#b85c00':'#2d6a2d';
+    return`<tr><td style="font-weight:600">${r.r}</td><td>${r.total}</td><td style="color:#c0392b;font-weight:600">${r.expired}</td><td style="color:#2d6a2d">${r.completed}</td><td style="color:#b85c00">${r.cancelled}</td><td style="color:#888">${r.deleted}</td><td style="color:${c};font-weight:700">${ep}%</td></tr>`;
+  }).join('')||'<tr><td colspan="7" class="empty">No data</td></tr>';
+  pgRender('b-ri','b-rb',routes.length,bRPG,bRPS,p=>{bRPG=p;renderRoutes();});
+}
+
+function renderReasons(){
+  // Ratio leaderboard
+  let ratioAll=bStats().filter(a=>a.total>=2);
+  if(bRS==='combined')ratioAll.sort((a,b)=>b.combined-a.combined);
+  else if(bRS==='expired')ratioAll.sort((a,b)=>b.expPct-a.expPct);
+  else ratioAll.sort((a,b)=>b.canPct-a.canPct);
+  ['rs-c','rs-e','rs-a'].forEach(id=>{const el=$(id);if(el)el.className='btn';});
+  const aId=bRS==='combined'?'rs-c':bRS==='expired'?'rs-e':'rs-a';
+  if($(aId))$(aId).className='btn pri';
+  const rpg=paginate(ratioAll,bRatioPG,bRatioPS),roff=(bRatioPG-1)*bRatioPS;
+  $('b-ratiotb').innerHTML=rpg.map((a,i)=>{
+    const cc=a.combined>70?'#c0392b':a.combined>50?'#b85c00':'#8a6d00';
+    return`<tr>
+      <td style="color:#bbb">${roff+i+1}</td>
+      <td><span class="mono">${a.agent}</span></td><td>${a.total}</td>
+      <td style="color:#c0392b">${a.expired}</td>
+      <td><b>${a.expPct}%</b><span class="bar"><div style="width:${a.expPct}%;background:#c0392b"></div></span></td>
+      <td style="color:#b85c00">${a.cancelled}</td>
+      <td><b>${a.canPct}%</b><span class="bar"><div style="width:${a.canPct}%;background:#b85c00"></div></span></td>
+      <td style="color:${cc}"><b>${a.combined}%</b><span class="bar" style="width:70px"><div style="width:${Math.min(a.combined,100)}%;background:${cc}"></div></span></td>
+      <td><span class="badge ${tierCls(a.expPct)}">${tierLbl(a.expPct)}</span></td>
+      <td><button class="tbtn wa" onclick="openMdl('${a.agent}','b-wa')">WA</button><button class="tbtn ca" onclick="openMdl('${a.agent}','b-call')">Call</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="10" class="empty">No agents (need min 2 bookings)</td></tr>';
+  pgRender('b-ratioi','b-ratiob',ratioAll.length,bRatioPG,bRatioPS,p=>{bRatioPG=p;renderReasons();});
+
+  // Reason → agent mapping helper
+  function buildRM(rows){
+    const rm={};
+    rows.forEach(r=>{
+      const ag=r.Agent||'Unknown';
+      const k=((r['Reject Reason']||'').trim()||'No reason given').slice(0,70);
+      if(!rm[k])rm[k]={reason:k,total:0,agents:{}};
+      rm[k].total++;rm[k].agents[ag]=(rm[k].agents[ag]||0)+1;
+    });
+    return rm;
+  }
+  function agStr(obj){
+    return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,5)
+      .map(([ag,cnt])=>`<span class="mono" style="font-size:11px">${ag}</span>&nbsp;<span style="color:#999;font-size:11px">x${cnt}</span>`)
+      .join('<span style="color:#ddd;padding:0 4px">|</span>');
+  }
+
+  // Deleted (Status === 'Deleted' exactly)
+  const delRows=bFilt.filter(r=>r.Status==='Deleted');
+  const delMap=buildRM(delRows);const delT=delRows.length;
+  $('b-delc').textContent=delT+' total';
+  $('b-deltb').innerHTML=Object.values(delMap).sort((a,b)=>b.total-a.total)
+    .map(r=>`<tr><td style="max-width:220px">${r.reason}</td><td style="font-weight:700">${r.total}</td><td style="color:#999">${delT?Math.round(r.total/delT*100):0}%</td><td style="line-height:2.2">${agStr(r.agents)}</td></tr>`)
+    .join('')||'<tr><td colspan="4" class="empty">No deleted bookings</td></tr>';
+
+  // Cancelled (Status === 'Cancelled by Agent' or 'cancelled')
+  const canRows=bFilt.filter(r=>r.Status==='Cancelled by Agent'||r.Status==='cancelled');
+  const canMap=buildRM(canRows);const canT=canRows.length;
+  $('b-canc').textContent=canT+' total';
+  $('b-cantb').innerHTML=Object.values(canMap).sort((a,b)=>b.total-a.total)
+    .map(r=>`<tr><td style="max-width:220px">${r.reason}</td><td style="font-weight:700">${r.total}</td><td style="color:#999">${canT?Math.round(r.total/canT*100):0}%</td><td style="line-height:2.2">${agStr(r.agents)}</td></tr>`)
+    .join('')||'<tr><td colspan="4" class="empty">No cancelled bookings</td></tr>';
+
+  // Reason filter dropdown
+  const allR=new Set();
+  bFilt.forEach(r=>{if(r.Status==='Deleted'||r.Status==='Cancelled by Agent'||r.Status==='cancelled')allR.add(((r['Reject Reason']||'').trim()||'No reason given').slice(0,70));});
+  const sel=$('b-rfil');
+  if(sel){const cur=sel.value;sel.innerHTML='<option value="all">All reasons</option>'+[...allR].sort().map(r=>`<option value="${r.replace(/"/g,'&quot;')}" ${cur===r?'selected':''}>${r.slice(0,55)}${r.length>55?'…':''}</option>`).join('');}
+  renderMatrix();
+}
+
+function renderMatrix(){
+  const filterR=($('b-rfil')||{value:'all'}).value;
+  const filterS=($('b-sfil')||{value:'all'}).value;
+  const agTot={};bFilt.forEach(r=>{const ag=r.Agent;if(ag)agTot[ag]=(agTot[ag]||0)+1;});
+  const rm={};
+  bFilt.forEach(r=>{
+    const isDel=r.Status==='Deleted',isCan=r.Status==='Cancelled by Agent'||r.Status==='cancelled';
+    if(!isDel&&!isCan)return;
+    const stLbl=isDel?'Deleted':'Cancelled';
+    if(filterS!=='all'&&stLbl!==filterS)return;
+    const ag=r.Agent||'Unknown';
+    const reason=((r['Reject Reason']||'').trim()||'No reason given').slice(0,70);
+    if(filterR!=='all'&&reason!==filterR)return;
+    const key=ag+'||'+reason+'||'+stLbl;
+    if(!rm[key])rm[key]={agent:ag,status:stLbl,reason,count:0};
+    rm[key].count++;
+  });
+  const rows=Object.values(rm).sort((a,b)=>b.count-a.count);
+  const pg=paginate(rows,bMatrixPG,bMatrixPS),off=(bMatrixPG-1)*bMatrixPS;
+  $('b-mtb').innerHTML=pg.map((row,i)=>{
+    const tot=agTot[row.agent]||1,pct=Math.round(row.count/tot*100);
+    return`<tr>
+      <td style="color:#bbb">${off+i+1}</td>
+      <td><span class="mono" style="font-weight:600">${row.agent}</span></td>
+      <td><span class="badge ${row.status==='Deleted'?'br':'ba'}">${row.status}</span></td>
+      <td style="max-width:250px">${row.reason}</td>
+      <td style="font-weight:700;color:#c0392b">${row.count}</td>
+      <td><b>${pct}%</b><span class="bar"><div style="width:${Math.min(pct,100)}%;background:#c0392b"></div></span><span style="font-size:11px;color:#999"> of ${tot}</span></td>
+      <td><button class="tbtn wa" onclick="openMdl('${row.agent}','b-wa')">WA</button><button class="tbtn ca" onclick="openMdl('${row.agent}','b-call')">Call</button></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" class="empty">No data for selected filter</td></tr>';
+  pgRender('b-mi','b-mb',rows.length,bMatrixPG,bMatrixPS,p=>{bMatrixPG=p;renderMatrix();});
+}
+
+function bCheckAlert(){
+  const cr=bStats().filter(a=>a.expPct>80&&a.total>=3);
+  const al=$('b-alert');
+  if(cr.length>0){al.style.display='block';al.textContent='⚠ '+cr.length+' agent'+(cr.length>1?'s have':' has')+' expiry rate above 80% (min 3 bookings) in selected period.';}
+  else al.style.display='none';
+}
+
+function bGenReport(){
+  const s=bStats(),t=bFilt.length;
+  const exp=bFilt.filter(r=>r.Status==='Expired').length;
+  const comp=bFilt.filter(r=>r.Status==='completed').length;
+  const canc=bFilt.filter(r=>r.Status==='Cancelled by Agent'||r.Status==='cancelled').length;
+  const del=bFilt.filter(r=>r.Status==='Deleted').length;
+  const{from,to}=bGetRange();
+  $('b-rout').innerHTML=`<div style="font-weight:700;margin-bottom:8px">Report — ${from===to?from:from+' to '+to}</div>
+    <div style="line-height:2.2">
+      Total: <b>${t}</b> | Expired: <b style="color:#c0392b">${exp}</b> (${t?Math.round(exp/t*100):0}%) | Completed: <b style="color:#2d6a2d">${comp}</b> | Cancelled: <b style="color:#b85c00">${canc}</b> | Deleted: <b style="color:#888">${del}</b><br>
+      Active agents: <b>${new Set(bFilt.map(r=>r.Agent).filter(Boolean)).size}</b><br>
+      <span style="color:#c0392b">Critical >80%: <b>${s.filter(a=>a.expPct>80&&a.total>=3).length}</b></span> &nbsp;
+      <span style="color:#b85c00">High 50-80%: <b>${s.filter(a=>a.expPct>=50&&a.expPct<80).length}</b></span><br><br>
+      <b>Top 5 expiring agents:</b><br>
+      ${s.filter(a=>a.total>=2).slice(0,5).map((a,i)=>`${i+1}. <span class="mono">${a.agent}</span> — Expiry ${a.expPct}%, Cancel ${a.canPct}%, Total ${a.total}`).join('<br>')}
+    </div>`;
+}
+
+function bTab(tab,el){
+  ['agents','routes','reasons','schedule'].forEach(t=>$('b-t-'+t).style.display=t===tab?'block':'none');
+  document.querySelectorAll('#pg-booking .tab').forEach(t=>t.classList.remove('on'));
+  if(el)el.classList.add('on');
+  if(tab==='routes')renderRoutes();
+  if(tab==='reasons')renderReasons();
+}
+
+// ── RECHARGE ──────────────────────────────────────────────────────
+function applyRF(){
+  $('r-cr').style.display=$('r-dr').value==='custom'?'flex':'none';
+  const{from,to}=rGetRange();
+  rFilt=rAll.filter(r=>{const d=new Date(r.created_at);return!isNaN(d)?(d>=from&&d<=to):true;});
+  rCPG=1;rFPG=1;rUPG=1;renderRAll();
+}
+
+function rGetRange(){
+  const s=$('r-dr').value,now=new Date();
+  if(s==='all')return{from:new Date('2000-01-01'),to:new Date('2099-12-31')};
+  if(s==='1230'){const f=new Date();f.setHours(12,30,0,0);const t=new Date();t.setDate(t.getDate()+1);t.setHours(12,30,0,0);if(now<f){f.setDate(f.getDate()-1);t.setDate(t.getDate()-1);}return{from:f,to:t};}
+  if(s==='today'){const f=new Date();f.setHours(0,0,0,0);return{from:f,to:now};}
+  if(s==='7'){const f=new Date();f.setDate(f.getDate()-7);f.setHours(0,0,0,0);return{from:f,to:now};}
+  if(s==='30'){const f=new Date();f.setDate(f.getDate()-30);f.setHours(0,0,0,0);return{from:f,to:now};}
+  if(s==='custom'){const fv=$('r-df').value,tv=$('r-dt').value;const f=fv?new Date(fv):new Date('2000-01-01');const t=tv?new Date(tv):new Date('2099-12-31');t.setHours(23,59,59);return{from:f,to:t};}
+  return{from:new Date('2000-01-01'),to:new Date('2099-12-31')};
+}
+
+function plan(a){const v=parseInt(a)||0;if(v===354)return{l:'Rs354 28day',c:'plan-354'};if(v===999)return{l:'Rs999 30day',c:'plan-999'};if(v===179)return{l:'Rs179 TopUp',c:'plan-179'};if(v===299)return{l:'Rs299 TopUp',c:'plan-299'};return{l:'Rs'+v,c:'plan-354'};}
+
+function renderRAll(){
+  const cap=rFilt.filter(r=>r.payment_status==='captured'),fail=rFilt.filter(r=>r.payment_status==='failed');
+  const rev=cap.reduce((s,r)=>s+(parseInt(r.payment_amount)||0),0);
+  const s354=cap.filter(r=>parseInt(r.payment_amount)===354).length;
+  const s999=cap.filter(r=>parseInt(r.payment_amount)===999).length;
+  const tops=cap.filter(r=>parseInt(r.payment_amount)===179||parseInt(r.payment_amount)===299).length;
+  $('r-met').innerHTML=`
+    <div class="mc"><div class="l">Total captured</div><div class="v" style="color:#2d6a2d">${cap.length}</div><div class="s">Rs${rev.toLocaleString()} revenue</div></div>
+    <div class="mc"><div class="l">Failed</div><div class="v" style="color:#c0392b">${fail.length}</div><div class="s">${rFilt.length?Math.round(fail.length/rFilt.length*100):0}% failure rate</div></div>
+    <div class="mc"><div class="l">Rs354 (28 day)</div><div class="v" style="color:#1a4fa0">${s354}</div><div class="s">Rs${(s354*354).toLocaleString()}</div></div>
+    <div class="mc"><div class="l">Rs999 (30 day)</div><div class="v" style="color:#5b21b6">${s999}</div><div class="s">Rs${(s999*999).toLocaleString()}</div></div>
+    <div class="mc"><div class="l">Top-ups</div><div class="v">${tops}</div><div class="s">Rs179 & Rs299</div></div>
+    <div class="mc"><div class="l">Total revenue</div><div class="v">Rs${rev.toLocaleString()}</div><div class="s">captured only</div></div>`;
+  renderROverview(cap);renderRFailed(fail,cap);renderRUnable(fail,cap);renderRTech(fail);
+  const gw=fail.filter(r=>r.payment_error_code==='GATEWAY_ERROR'),tb=$('r-tech');
+  if(gw.length){tb.style.display='block';tb.innerHTML=`<div style="font-size:13px;font-weight:700;color:#c0392b;margin-bottom:5px">Razorpay Gateway Error Detected</div><div style="font-size:13px;color:#666;line-height:1.7">${gw.length} payment${gw.length>1?'s':''} failed with GATEWAY_ERROR.<br>Reason: "${gw[0].payment_error_description||'Unknown'}"<br>Affected: ${gw.map(r=>(r.customer_contact||'').toString().replace(/^91/,'')).join(', ')}</div>`;}
+  else tb.style.display='none';
+}
+
+function renderROverview(cap){
+  if(!cap)cap=rFilt.filter(r=>r.payment_status==='captured');
+  const pg=paginate(cap,rCPG,rCPS),off=(rCPG-1)*rCPS;
+  $('r-ctb').innerHTML=pg.map((r,i)=>{const p=plan(r.payment_amount),t=new Date(r.created_at);return`<tr><td style="color:#bbb">${off+i+1}</td><td class="mono">${!isNaN(t)?t.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):r.created_at}</td><td class="mono">${(r.customer_contact||'').toString().replace(/^91/,'')}</td><td style="font-size:12px;color:#888">${r.customer_email||'-'}</td><td style="font-weight:700">Rs${r.payment_amount}</td><td><span class="badge ${p.c}">${p.l}</span></td><td>${r.payment_method||'-'}</td><td class="mono" style="font-size:11px;color:#bbb">${(r.payment_id||'').slice(0,18)}</td></tr>`;}).join('')||'<tr><td colspan="8" class="empty">No captured recharges</td></tr>';
+  pgRender('r-ci','r-cb',cap.length,rCPG,rCPS,p=>{rCPG=p;renderROverview();});
+}
+
+function renderRFailed(fail,cap){
+  if(!fail)fail=rFilt.filter(r=>r.payment_status==='failed');
+  if(!cap)cap=rFilt.filter(r=>r.payment_status==='captured');
+  const f354=fail.filter(r=>parseInt(r.payment_amount)===354).length,f999=fail.filter(r=>parseInt(r.payment_amount)===999).length;
+  $('r-fmet').innerHTML=`<div class="mc"><div class="l">Total failed</div><div class="v" style="color:#c0392b">${fail.length}</div><div class="s">in period</div></div><div class="mc"><div class="l">Failed Rs354</div><div class="v" style="color:#1a4fa0">${f354}</div><div class="s">Rs${(f354*354).toLocaleString()} lost</div></div><div class="mc"><div class="l">Failed Rs999</div><div class="v" style="color:#5b21b6">${f999}</div><div class="s">Rs${(f999*999).toLocaleString()} lost</div></div>`;
+  const pg=paginate(fail,rFPG,rFPS),off=(rFPG-1)*rFPS;
+  $('r-ftb').innerHTML=pg.map((r,i)=>{const p=plan(r.payment_amount),t=new Date(r.created_at),c=(r.customer_contact||'').toString().replace(/^91/,'');return`<tr><td style="color:#bbb">${off+i+1}</td><td class="mono">${!isNaN(t)?t.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):r.created_at}</td><td class="mono">${c}</td><td style="font-size:12px;color:#888">${r.customer_email||'-'}</td><td style="font-weight:700;color:#c0392b">Rs${r.payment_amount}</td><td><span class="badge ${p.c}">${p.l}</span></td><td><span class="badge br">${r.payment_error_code||'UNKNOWN'}</span></td><td style="font-size:12px;color:#888">${r.payment_error_description||'-'}</td><td><button class="tbtn wa" onclick="openMdl('${c}','r-wa')">WA</button></td></tr>`;}).join('')||'<tr><td colspan="9" class="empty">No failed recharges</td></tr>';
+  pgRender('r-fi','r-fb',fail.length,rFPG,rFPS,p=>{rFPG=p;renderRFailed();});
+  const fcm=new Map();cap.forEach(r=>{const c=(r.customer_contact||'').toString();if(!fcm.has(c))fcm.set(c,r);});
+  const ov=[];fail.forEach(r=>{const c=(r.customer_contact||'').toString();if(fcm.has(c)){const cv=fcm.get(c),ft=new Date(r.created_at),ct=new Date(cv.created_at);ov.push({c:c.replace(/^91/,''),fa:r.created_at,ra:cv.created_at,gap:!isNaN(ft)&&!isNaN(ct)?Math.round(Math.abs(ct-ft)/60000):null,amt:cv.payment_amount});}});
+  $('r-ltb').innerHTML=ov.length?ov.map(o=>`<tr><td class="mono">${o.c}</td><td class="mono" style="font-size:12px">${o.fa}</td><td class="mono" style="font-size:12px">${o.ra}</td><td><span class="badge bg">${o.gap!==null?o.gap+' min':'?'}</span></td><td style="font-weight:700;color:#2d6a2d">Rs${o.amt}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">No overlap in this period</td></tr>';
+  const rm={};fail.forEach(r=>{const k=(r.payment_error_code||'UNKNOWN')+'||'+(r.payment_error_description||'');if(!rm[k])rm[k]={code:r.payment_error_code||'UNKNOWN',desc:r.payment_error_description||'-',count:0};rm[k].count++;});
+  $('r-errtb').innerHTML=Object.values(rm).sort((a,b)=>b.count-a.count).map(r=>`<tr><td><span class="badge br">${r.code}</span></td><td style="font-size:12px;color:#888">${r.desc}</td><td style="font-weight:700">${r.count}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">No reasons</td></tr>';
+}
+
+function renderRUnable(fail,cap){
+  if(!fail)fail=rFilt.filter(r=>r.payment_status==='failed');
+  if(!cap)cap=rFilt.filter(r=>r.payment_status==='captured');
+  const cc=new Set(cap.map(r=>(r.customer_contact||'').toString()));
+  const un=fail.filter(r=>{const a=parseInt(r.payment_amount);return(a===354||a===999)&&!cc.has((r.customer_contact||'').toString());});
+  $('r-unsum').textContent=un.length+' user'+(un.length!==1?'s':'')+' attempted Rs354 or Rs999 recharge, failed, and have NOT recharged in this period.';
+  const pg=paginate(un,rUPG,rUPS),off=(rUPG-1)*rUPS;
+  $('r-untb').innerHTML=pg.map((r,i)=>{const p=plan(r.payment_amount),c=(r.customer_contact||'').toString().replace(/^91/,'');return`<tr><td style="color:#bbb">${off+i+1}</td><td class="mono" style="font-weight:700">${c}</td><td style="font-size:12px;color:#888">${r.customer_email||'-'}</td><td style="font-weight:700;color:#c0392b">Rs${r.payment_amount}</td><td><span class="badge ${p.c}">${p.l}</span></td><td class="mono" style="font-size:12px">${r.created_at}</td><td style="font-size:12px;color:#888">${r.payment_error_description||'-'}</td><td><span class="badge br">Not recharged</span></td><td><button class="tbtn wa" onclick="openMdl('${c}','r-wa')">WA</button></td></tr>`;}).join('')||'<tr><td colspan="9" class="empty">No stuck users</td></tr>';
+  pgRender('r-uni','r-unb',un.length,rUPG,rUPS,p=>{rUPG=p;renderRUnable();});
+}
+
+function renderRTech(fail){
+  if(!fail)fail=rFilt.filter(r=>r.payment_status==='failed');
+  const em={};fail.forEach(r=>{const c=r.payment_error_code||'UNKNOWN';em[c]=(em[c]||0)+1;});const tot=fail.length;
+  $('r-techtb').innerHTML=Object.entries(em).sort((a,b)=>b[1]-a[1]).map(([c,n])=>{const sl=c==='GATEWAY_ERROR'?'Tech issue':c==='BAD_REQUEST_ERROR'?'User error':'Unknown';const sc=c==='GATEWAY_ERROR'?'br':c==='BAD_REQUEST_ERROR'?'ba':'bp';return`<tr><td><span class="badge br">${c}</span></td><td style="font-weight:700">${n}</td><td>${tot?Math.round(n/tot*100):0}%</td><td><span class="badge ${sc}">${sl}</span></td></tr>`;}).join('')||'<tr><td colspan="4" class="empty">No errors</td></tr>';
+  $('r-logtb').innerHTML=fail.map(r=>`<tr><td class="mono" style="font-size:12px">${r.created_at}</td><td class="mono">${(r.customer_contact||'').toString().replace(/^91/,'')}</td><td><span class="badge br">${r.payment_error_code||'?'}</span></td><td style="font-size:12px;color:#888">${r.payment_error_description||'-'}</td><td>${r.payment_method||'-'}</td><td style="font-weight:700;color:#c0392b">Rs${r.payment_amount}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No errors</td></tr>';
+}
+
+function rTab(tab,el){
+  ['overview','failed','unable','tech'].forEach(t=>$('r-t-'+t).style.display=t===tab?'block':'none');
+  document.querySelectorAll('#pg-recharge .tab').forEach(t=>t.classList.remove('on'));if(el)el.classList.add('on');
+}
+
+// ── PAGINATION ────────────────────────────────────────────────────
+function paginate(arr,pg,ps){return arr.slice((pg-1)*ps,pg*ps);}
+function pgRender(infoId,btnId,total,page,size,onChange){
+  const pages=Math.max(1,Math.ceil(total/size)),from=Math.min((page-1)*size+1,total),to=Math.min(page*size,total);
+  const el=$(infoId);if(el)el.textContent=total?from+'-'+to+' of '+total:'0 results';
+  const btns=$(btnId);if(!btns)return;
+  let arr=[];
+  if(pages<=7){for(let i=1;i<=pages;i++)arr.push(i);}
+  else{arr=[1];if(page>3)arr.push('...');for(let i=Math.max(2,page-1);i<=Math.min(pages-1,page+1);i++)arr.push(i);if(page<pages-2)arr.push('...');arr.push(pages);}
+  btns.innerHTML=`<button ${page<=1?'disabled':''} onclick="(${onChange})(${page-1})">prev</button>`+
+    arr.map(p=>p==='...'?`<span style="padding:0 4px;font-size:12px;color:#bbb">...</span>`:`<button class="${p===page?'on':''}" onclick="(${onChange})(${p})">${p}</button>`).join('')+
+    `<button ${page>=pages?'disabled':''} onclick="(${onChange})(${page+1})">next</button>`;
+}
+
+// ── SWITCHER ──────────────────────────────────────────────────────
+function swAgent(agent,el){
+  curPage=agent;
+  document.querySelectorAll('.sw button').forEach(b=>b.classList.remove('on'));if(el)el.classList.add('on');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));$('pg-'+agent).classList.add('on');
+  $('b-ctrl').style.display=agent==='booking'?'flex':'none';
+  $('r-ctrl').style.display=agent==='recharge'?'flex':'none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────
+function openMdl(contact,type){
+  curAg=contact;$('m-s').textContent='Contact: +91'+contact;
+  if(type==='b-wa'||type==='b-call'){
+    const st=bStats().find(a=>a.agent==contact)||{expPct:0,expired:0,total:0,canPct:0};
+    if(type==='b-wa'){$('m-t').textContent='WhatsApp message';$('m-msg').value='Hi, greetings from Taxi Sanchalak!\n\nWe noticed '+st.expired+' of your '+st.total+' bookings ('+st.expPct+'%) have expired recently.\n\nKindly action all bookings promptly.\n\nThank you.';}
+    else{$('m-t').textContent='Call agent — '+contact;$('m-msg').value='Talk points:\n- Expired: '+st.expired+'/'+st.total+' ('+st.expPct+'%)\n- Cancelled: '+st.canPct+'%\n- Ask: pricing issues, driver availability\n- Suggest: faster response to bookings';}
+  }else{$('m-t').textContent='WhatsApp — Recharge reminder';$('m-msg').value='Hi! Greetings from Taxi Sanchalak.\n\nYour recent recharge attempt was unsuccessful.\n\nPlease recharge to continue using the platform.\n\nFor help, contact our support. Thank you.';}
+  $('mdl').classList.add('on');
+}
+function closeMdl(){$('mdl').classList.remove('on');}
+function copyMsg(){const t=$('m-msg').value;navigator.clipboard?navigator.clipboard.writeText(t):($('m-msg').select(),document.execCommand('copy'));const b=event.target;b.textContent='Copied!';setTimeout(()=>b.textContent='Copy message',1500);}
+function callAg(){if(curAg)window.open('tel:+91'+curAg);}
+
+// ── EXPORT ────────────────────────────────────────────────────────
+function dl(content,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'}));a.download=name;a.click();}
+function today(){return new Date().toISOString().slice(0,10);}
+function doExport(){curPage==='booking'?exportBCSV():exportRCSV();}
+function exportBCSV(){const s=bStats();dl('Agent,Total,Completed,Expired,Cancelled,Deleted,Expiry%,Cancel%,Combined%,Risk\n'+s.map(a=>`${a.agent},${a.total},${a.completed},${a.expired},${a.cancelled},${a.deleted},${a.expPct}%,${a.canPct}%,${a.combined}%,${tier(a.expPct)}`).join('\n'),'booking_agents_'+today()+'.csv');}
+function exportRCSV(){dl('Time,Contact,Email,Amount,Status,Plan,ErrorCode,ErrorDesc,PaymentID\n'+rFilt.map(r=>`${r.created_at},${(r.customer_contact||'').toString().replace(/^91/,'')},${r.customer_email||''},${r.payment_amount},${r.payment_status},${plan(r.payment_amount).l},${r.payment_error_code||''},${(r.payment_error_description||'').replace(/,/g,' ')},${r.payment_id||''}`).join('\n'),'recharge_'+today()+'.csv');}
+function exportUnable(){const cap=rFilt.filter(r=>r.payment_status==='captured'),cc=new Set(cap.map(r=>(r.customer_contact||'').toString()));const un=rFilt.filter(r=>r.payment_status==='failed'&&(parseInt(r.payment_amount)===354||parseInt(r.payment_amount)===999)&&!cc.has((r.customer_contact||'').toString()));dl('Contact,Email,Amount,Plan,FailedAt,ErrorCode,Error\n'+un.map(r=>`${(r.customer_contact||'').toString().replace(/^91/,'')},${r.customer_email||''},${r.payment_amount},${plan(r.payment_amount).l},${r.created_at},${r.payment_error_code||''},${(r.payment_error_description||'').replace(/,/g,' ')}`).join('\n'),'unable_recharge_'+today()+'.csv');}
+
+// ── SAMPLE DATA ───────────────────────────────────────────────────
+function bSample(){
+  const st=['Expired','Expired','Expired','completed','Assigned','new','Deleted','Cancelled by Agent','Picked','CBD'];
+  const rs=['Customer cancelled the booking','I was just checking the rate','No response from any driver','Driver rates were not good','',''];
+  const pk=['Delhi','Dehradun','Jaipur','Lucknow','Agra','Shimla','Chandigarh','New Delhi','Mumbai','Prayagraj'];
+  const dr=['Dehradun','Delhi','Agra','Varanasi','Mathura','New Delhi','Delhi','Jaipur','Pune','Allahabad'];
+  const ag=['9811982007','8218459240','9058765840','9993684601','9936824616','9528974540','9509429920','9918350160','8923013660','9910540320'];
+  for(let i=0;i<600;i++){
+    const s=st[Math.floor(Math.random()*st.length)];
+    const day=Math.floor(Math.random()*5)+13; // Apr 13-17
+    bAll.push({'Booking ID':2430000+i,'Agent':ag[Math.floor(Math.random()*10)],'Pickup':pk[Math.floor(Math.random()*10)],'Drop':dr[Math.floor(Math.random()*10)],'Vehicle Type':'Sedan',
+      'Pickup Date':'2026/4/'+day,
+      'Booking Amount':Math.round((2000+Math.random()*8000)/100)*100,'Status':s,
+      'Reject Reason':(s==='Expired'||s==='Deleted'||s==='Cancelled by Agent')?rs[Math.floor(Math.random()*rs.length)]:'',
+      'timestamp':'2026-04-'+String(day).padStart(2,'0')+' 10:00:00','Updated Date':'2026-04-'+String(day).padStart(2,'0')+' 12:00:00'});
+  }
+}
+
+function rSample(){
+  const cts=['919368166250','918817887205','919123135850','919760461746','918766225018'];
+  const ems=['dev@gmail.com','prem@gmail.com','rp@gmail.com','jit@gmail.com','deep@gmail.com'];
+  const amts=[354,354,999,299,179,354,354,999];
+  for(let i=0;i<60;i++){
+    const isFail=Math.random()<0.08,amt=amts[Math.floor(Math.random()*amts.length)];
+    const d=new Date(2026,3,15,12+Math.floor(Math.random()*12),Math.floor(Math.random()*60));
+    rAll.push({event:'subscription.pending',created_at:d.toLocaleString('en-IN'),payment_id:'pay_'+i+'_'+Math.random().toString(36).slice(2,8),payment_status:isFail?'failed':'captured',payment_amount:String(amt),payment_method:['upi','card','netbanking'][Math.floor(Math.random()*3)],customer_contact:cts[Math.floor(Math.random()*5)],customer_email:ems[Math.floor(Math.random()*5)],payment_error_code:isFail?'GATEWAY_ERROR':'',payment_error_description:isFail?'Insufficient balance in your account.':'',subscription_status:isFail?'pending':'active'});
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+$('r-ctrl').style.display='none';
+// Pre-fill date pickers with today
+(function(){const td=todayStr();const df=$('b-df'),dt=$('b-dt');if(df)df.value=td;if(dt)dt.value=td;})();
+setInterval(()=>{if($('b-auto')&&$('b-auto').checked){loadBooking();loadRecharge();}},5*60*1000);
+loadAll();
+</script>
+</body>
+</html>
