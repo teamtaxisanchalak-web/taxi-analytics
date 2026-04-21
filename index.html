@@ -12,165 +12,205 @@
     --panel: #ffffff;
     --border: #e0ddd5;
     --accent: #1a3cff;
-    --accent2: #ff3c1a;
     --muted: #888880;
     --tab-h: 56px;
     --bar-h: 52px;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--ink); font-family: 'Syne', sans-serif; }
 
-  html, body { height: 100%; overflow: hidden; background: var(--paper); font-family: 'Syne', sans-serif; }
+  /* ── PIN LOCK ── */
+  #pin-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #pin-screen.unlocked { display: none; }
+  .pin-logo {
+    font-size: 22px; font-weight: 800; color: #fff;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+  }
+  .pin-logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .pin-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: #444; letter-spacing: .12em; margin-bottom: 36px; }
+  .pin-label { font-family: 'DM Mono', monospace; font-size: 11px; color: #555; letter-spacing: .1em; margin-bottom: 14px; }
+  .pin-dots { display: flex; gap: 12px; margin-bottom: 28px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #333; background: transparent; transition: background .15s, border-color .15s; }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 68px); gap: 10px; }
+  .pin-btn {
+    height: 68px; border-radius: 12px;
+    background: #111620; border: 1px solid #1e2736;
+    color: #fff; font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 700; cursor: pointer;
+    transition: background .1s, transform .08s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-btn:hover { background: #1a2236; }
+  .pin-btn:active { transform: scale(.94); background: var(--accent); }
+  .pin-btn.del { font-size: 18px; color: #666; }
+  .pin-btn.del:hover { color: #fff; background: #1a2236; }
+  .pin-error { font-family: 'DM Mono', monospace; font-size: 12px; color: #e84545; margin-top: 16px; height: 18px; letter-spacing: .06em; }
+  .pin-change-hint { font-family: 'DM Mono', monospace; font-size: 10px; color: #2a3040; margin-top: 28px; letter-spacing: .06em; cursor: pointer; }
+  .pin-change-hint:hover { color: #555; }
+
+  /* ── CHANGE PIN MODAL ── */
+  #change-pin-modal {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,.75); align-items: center; justify-content: center;
+  }
+  #change-pin-modal.open { display: flex; }
+  .cp-box {
+    background: #111620; border: 1px solid #1e2736; border-radius: 16px;
+    padding: 32px 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 280px;
+  }
+  .cp-title { font-size: 15px; font-weight: 700; color: #fff; }
+  .cp-desc { font-family: 'DM Mono', monospace; font-size: 11px; color: #555; text-align: center; }
+  .cp-input {
+    font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 600;
+    letter-spacing: .3em; text-align: center;
+    background: #0c0f14; border: 1px solid #1e2736; border-radius: 8px;
+    color: #fff; padding: 10px 16px; width: 100%; outline: none;
+    -webkit-text-security: disc; type: password;
+  }
+  .cp-row { display: flex; gap: 10px; width: 100%; }
+  .cp-btn { flex: 1; padding: 10px; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; border: none; }
+  .cp-btn.save { background: var(--accent); color: #fff; }
+  .cp-btn.cancel { background: #1e2736; color: #888; }
+  .cp-msg { font-family: 'DM Mono', monospace; font-size: 11px; color: #0fba78; height: 14px; }
 
   /* ── TOP BAR ── */
   #topbar {
     position: fixed; top: 0; left: 0; right: 0; height: var(--bar-h);
     background: var(--ink); z-index: 1000;
-    display: flex; align-items: center; padding: 0 24px;
-    gap: 16px;
+    display: flex; align-items: center; padding: 0 24px; gap: 16px;
     border-bottom: 2px solid var(--accent);
   }
-
-  .logo {
-    font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -.01em;
-    display: flex; align-items: center; gap: 8px; white-space: nowrap;
-  }
+  .logo { font-size: 15px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
   .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
   .logo-sub { font-size: 11px; font-weight: 400; color: #666; font-family: 'DM Mono', monospace; }
-
   .spacer { flex: 1; }
-
-  .hub-label {
-    font-size: 11px; font-weight: 600; color: #555; letter-spacing: .12em; text-transform: uppercase;
-    font-family: 'DM Mono', monospace;
+  .lock-btn {
+    font-family: 'DM Mono', monospace; font-size: 10px; color: #333; cursor: pointer;
+    padding: 4px 8px; border: 1px solid #1e2736; border-radius: 5px;
+    background: transparent; transition: color .15s, border-color .15s;
   }
+  .lock-btn:hover { color: #fff; border-color: #555; }
 
   /* ── TAB ROW ── */
   #tabrow {
     position: fixed; top: var(--bar-h); left: 0; right: 0; height: var(--tab-h);
-    background: var(--paper);
-    border-bottom: 1px solid var(--border);
+    background: var(--paper); border-bottom: 1px solid var(--border);
     display: flex; align-items: flex-end; padding: 0 24px; gap: 2px;
-    z-index: 999;
-    overflow-x: auto;
+    z-index: 999; overflow-x: auto;
   }
   #tabrow::-webkit-scrollbar { display: none; }
-
   .tab {
-    position: relative;
-    display: flex; align-items: center; gap: 8px;
-    padding: 0 20px 0 16px;
-    height: 40px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    font-family: 'Syne', sans-serif;
-    font-size: 13px; font-weight: 600;
-    color: var(--muted);
-    white-space: nowrap;
-    transition: background .15s, color .15s;
-    user-select: none;
+    position: relative; display: flex; align-items: center; gap: 8px;
+    padding: 0 20px 0 16px; height: 40px;
+    background: transparent; border: 1px solid transparent; border-bottom: none;
+    border-radius: 8px 8px 0 0; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--muted); white-space: nowrap;
+    transition: background .15s, color .15s; user-select: none;
   }
   .tab:hover { background: #ede9e0; color: var(--ink); }
-  .tab.active {
-    background: var(--panel);
-    border-color: var(--border);
-    color: var(--ink);
-    box-shadow: 0 -2px 0 var(--accent) inset;
-  }
-  .tab .tab-icon {
-    width: 24px; height: 24px; border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
+  .tab.active { background: var(--panel); border-color: var(--border); color: var(--ink); box-shadow: 0 -2px 0 var(--accent) inset; }
+  .tab .tab-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
   .tab:nth-child(1) .tab-icon { background: #e8f0ff; }
   .tab:nth-child(2) .tab-icon { background: #e8fff8; }
   .tab:nth-child(3) .tab-icon { background: #fff3e8; }
   .tab.active:nth-child(1) .tab-icon { background: #1a3cff22; }
   .tab.active:nth-child(2) .tab-icon { background: #00d9a422; }
   .tab.active:nth-child(3) .tab-icon { background: #ff9c1a22; }
-
-  .tab-badge {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px; font-weight: 500;
-    padding: 1px 5px; border-radius: 4px;
-    background: var(--border); color: var(--muted);
-    margin-left: 2px;
-  }
+  .tab-badge { font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; padding: 1px 5px; border-radius: 4px; background: var(--border); color: var(--muted); margin-left: 2px; }
   .tab.active .tab-badge { background: var(--accent); color: #fff; }
 
   /* ── FRAME AREA ── */
-  #frames {
-    position: fixed;
-    top: calc(var(--bar-h) + var(--tab-h));
-    left: 0; right: 0; bottom: 0;
-  }
-
-  .frame-wrap {
-    position: absolute; inset: 0;
-    display: none;
-  }
+  #frames { position: fixed; top: calc(var(--bar-h) + var(--tab-h)); left: 0; right: 0; bottom: 28px; }
+  .frame-wrap { position: absolute; inset: 0; display: none; }
   .frame-wrap.active { display: block; }
-
-  iframe {
-    width: 100%; height: 100%;
-    border: none; display: block;
-  }
+  iframe { width: 100%; height: 100%; border: none; display: block; }
 
   /* ── LOADING OVERLAY ── */
   .loading-overlay {
-    position: absolute; inset: 0;
-    background: var(--paper);
+    position: absolute; inset: 0; background: var(--paper);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 16px; z-index: 10;
-    transition: opacity .3s;
+    gap: 16px; z-index: 10; transition: opacity .3s;
   }
   .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-  .spin-ring {
-    width: 36px; height: 36px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
-  }
+  .spin-ring { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px; color: var(--muted);
-    letter-spacing: .06em;
-  }
+  .loading-text { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: .06em; }
 
   /* ── STATUS BAR ── */
   #statusbar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: 28px; background: var(--ink);
-    display: flex; align-items: center; padding: 0 20px; gap: 20px;
-    z-index: 1000;
+    position: fixed; bottom: 0; left: 0; right: 0; height: 28px; background: var(--ink);
+    display: flex; align-items: center; padding: 0 20px; gap: 20px; z-index: 1000;
     border-top: 1px solid #1e2430;
   }
-  .st-item {
-    display: flex; align-items: center; gap: 6px;
-    font-family: 'DM Mono', monospace; font-size: 10px; color: #555;
-  }
+  .st-item { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; color: #555; }
   .st-dot { width: 5px; height: 5px; border-radius: 50%; }
   .st-dot.green { background: #0fba78; box-shadow: 0 0 4px #0fba78; }
   .st-dot.blue  { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
   #active-label { color: #999; margin-left: auto; }
 
-  /* ── RESPONSIVE ── */
   @media (max-width: 600px) {
     #topbar { padding: 0 14px; }
     #tabrow { padding: 0 10px; }
     .tab { padding: 0 12px 0 10px; font-size: 12px; }
-    .hub-label { display: none; }
   }
 </style>
 </head>
 <body>
+
+<!-- ── PIN LOCK SCREEN ── -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <div class="pin-logo-dot"></div>
+    Taxi Sanchalak
+  </div>
+  <div class="pin-sub">ANALYTICS HUB — SECURE ACCESS</div>
+  <div class="pin-label">ENTER PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn del" onclick="pinClear()">✕</button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinBack()">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-change-hint" onclick="openChangePin()">⚙ Change PIN</div>
+</div>
+
+<!-- ── CHANGE PIN MODAL ── -->
+<div id="change-pin-modal">
+  <div class="cp-box">
+    <div class="cp-title">🔐 Change PIN</div>
+    <div class="cp-desc">Enter current PIN, then set new 4-digit PIN</div>
+    <input class="cp-input" id="cp-current" type="password" maxlength="4" placeholder="Current PIN" inputmode="numeric"/>
+    <input class="cp-input" id="cp-new" type="password" maxlength="4" placeholder="New PIN" inputmode="numeric"/>
+    <input class="cp-input" id="cp-confirm" type="password" maxlength="4" placeholder="Confirm New PIN" inputmode="numeric"/>
+    <div class="cp-msg" id="cp-msg"></div>
+    <div class="cp-row">
+      <button class="cp-btn cancel" onclick="closeChangePin()">Cancel</button>
+      <button class="cp-btn save" onclick="saveNewPin()">Save PIN</button>
+    </div>
+  </div>
+</div>
 
 <!-- TOP BAR -->
 <div id="topbar">
@@ -180,7 +220,8 @@
     <span class="logo-sub">ANALYTICS HUB</span>
   </div>
   <div class="spacer"></div>
-  <div class="hub-label" id="clock-display"></div>
+  <div class="hub-label" id="clock-display" style="font-family:'DM Mono',monospace;font-size:11px;color:#555;letter-spacing:.12em;"></div>
+  <button class="lock-btn" onclick="lockHub()" title="Lock dashboard">🔒 LOCK</button>
 </div>
 
 <!-- TAB ROW -->
@@ -195,11 +236,15 @@
     Call Analytics
     <span class="tab-badge">LIVE</span>
   </div>
+  <div class="tab" onclick="switchTab(2, this)" data-index="2">
+    <div class="tab-icon">📡</div>
+    Ops Monitor
+    <span class="tab-badge">v4.2</span>
+  </div>
 </div>
 
 <!-- FRAMES -->
 <div id="frames">
-
   <div class="frame-wrap active" id="fw-0">
     <div class="loading-overlay" id="lo-0">
       <div class="spin-ring"></div>
@@ -207,7 +252,6 @@
     </div>
     <iframe src="dashboard.html" id="if-0" onload="frameLoaded(0)"></iframe>
   </div>
-
   <div class="frame-wrap" id="fw-1">
     <div class="loading-overlay" id="lo-1">
       <div class="spin-ring"></div>
@@ -215,67 +259,128 @@
     </div>
     <iframe src="live_dashboard.html" id="if-1" onload="frameLoaded(1)" loading="lazy"></iframe>
   </div>
-
+  <div class="frame-wrap" id="fw-2">
+    <div class="loading-overlay" id="lo-2">
+      <div class="spin-ring"></div>
+      <div class="loading-text">Loading Ops Monitor…</div>
+    </div>
+    <iframe src="all_monitoring-dashboard.html" id="if-2" onload="frameLoaded(2)" loading="lazy"></iframe>
+  </div>
 </div>
 
 <!-- STATUS BAR -->
 <div id="statusbar">
   <div class="st-item">
     <div class="st-dot green"></div>
-    <span>2 DASHBOARDS</span>
+    <span>3 DASHBOARDS</span>
   </div>
   <div class="st-item">
     <div class="st-dot blue"></div>
     <span>GITHUB PAGES</span>
   </div>
-  <div class="st-item st-item--active" id="active-label">
+  <div class="st-item" id="active-label">
     ACTIVE: <span id="active-name" style="color:#fff;margin-left:5px">COMMAND CENTER</span>
   </div>
 </div>
 
 <script>
+  // ── PIN STORAGE (localStorage so it persists) ──
+  const DEFAULT_PIN = '7455';
+  function getPin() { return localStorage.getItem('ts_pin') || DEFAULT_PIN; }
+  function setPin(p) { localStorage.setItem('ts_pin', p); }
+
+  let pinEntry = '';
+
+  function pinPress(d) {
+    if (pinEntry.length >= 4) return;
+    pinEntry += d;
+    updateDots();
+    if (pinEntry.length === 4) setTimeout(checkPin, 120);
+  }
+  function pinBack() { pinEntry = pinEntry.slice(0, -1); updateDots(); }
+  function pinClear() { pinEntry = ''; updateDots(); }
+  function updateDots() {
+    for (let i = 0; i < 4; i++)
+      document.getElementById('pd' + i).classList.toggle('filled', i < pinEntry.length);
+  }
+  function checkPin() {
+    if (pinEntry === getPin()) {
+      document.getElementById('pin-screen').classList.add('unlocked');
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.getElementById('pin-error').textContent = 'INCORRECT PIN — TRY AGAIN';
+      pinEntry = ''; updateDots();
+      setTimeout(() => document.getElementById('pin-error').textContent = '', 1800);
+    }
+  }
+
+  // Lock hub
+  function lockHub() {
+    pinEntry = ''; updateDots();
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('pin-screen').classList.remove('unlocked');
+  }
+
+  // ── CHANGE PIN ──
+  function openChangePin() {
+    document.getElementById('cp-current').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    document.getElementById('cp-msg').textContent = '';
+    document.getElementById('change-pin-modal').classList.add('open');
+  }
+  function closeChangePin() { document.getElementById('change-pin-modal').classList.remove('open'); }
+  function saveNewPin() {
+    const cur = document.getElementById('cp-current').value.trim();
+    const nw  = document.getElementById('cp-new').value.trim();
+    const cnf = document.getElementById('cp-confirm').value.trim();
+    const msg = document.getElementById('cp-msg');
+    if (cur !== getPin()) { msg.style.color='#e84545'; msg.textContent = 'Current PIN incorrect'; return; }
+    if (!/^\d{4}$/.test(nw)) { msg.style.color='#e84545'; msg.textContent = 'PIN must be 4 digits'; return; }
+    if (nw !== cnf) { msg.style.color='#e84545'; msg.textContent = 'PINs do not match'; return; }
+    setPin(nw);
+    msg.style.color = '#0fba78'; msg.textContent = 'PIN changed successfully!';
+    setTimeout(closeChangePin, 1400);
+  }
+
+  // ── TABS ──
   const tabs = [
     { name: 'COMMAND CENTER' },
     { name: 'CALL ANALYTICS' },
+    { name: 'OPS MONITOR' },
   ];
-
   let current = 0;
   const loaded = new Set([0]);
 
   function switchTab(idx, el) {
     if (idx === current) return;
-
-    // Deactivate old
     document.querySelector('.tab.active').classList.remove('active');
     document.getElementById('fw-' + current).classList.remove('active');
-
-    // Activate new
     el.classList.add('active');
     document.getElementById('fw-' + idx).classList.add('active');
-
-    // Trigger lazy load
-    if (!loaded.has(idx)) {
-      loaded.add(idx);
-      // iframe already has src via HTML; just ensure it's shown
-    }
-
     current = idx;
     document.getElementById('active-name').textContent = tabs[idx].name;
   }
-
   function frameLoaded(idx) {
-    const overlay = document.getElementById('lo-' + idx);
-    if (overlay) overlay.classList.add('hidden');
+    const o = document.getElementById('lo-' + idx);
+    if (o) o.classList.add('hidden');
   }
 
-  // Clock
+  // ── CLOCK ──
   function updateClock() {
-    const now = new Date();
     document.getElementById('clock-display').textContent =
-      now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
   }
-  updateClock();
-  setInterval(updateClock, 1000);
+  updateClock(); setInterval(updateClock, 1000);
+
+  // Keyboard PIN support
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('pin-screen').classList.contains('unlocked')) return;
+    if (document.getElementById('change-pin-modal').classList.contains('open')) return;
+    if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+    if (e.key === 'Backspace') pinBack();
+    if (e.key === 'Escape') pinClear();
+  });
 </script>
 </body>
 </html>
