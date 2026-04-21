@@ -195,11 +195,6 @@
     Call Analytics
     <span class="tab-badge">LIVE</span>
   </div>
-  <div class="tab" onclick="switchTab(2, this)" data-index="2">
-    <div class="tab-icon">📡</div>
-    Ops Monitor
-    <span class="tab-badge">v4.2</span>
-  </div>
 </div>
 
 <!-- FRAMES -->
@@ -218,16 +213,9 @@
       <div class="spin-ring"></div>
       <div class="loading-text">Loading Call Analytics…</div>
     </div>
-    <iframe src="live_dashboard.html" id="if-1" onload="frameLoaded(1)" loading="lazy"></iframe>
+    <iframe src="https://script.google.com/macros/s/AKfycbzjkQFJ3Exag-ttVNyonppkERQeuxnjchl_SQZJoogS5EBr_raDomD2IKnpSmpGzEV1/exec" id="if-1" onload="frameLoaded(1)" loading="lazy"></iframe>
   </div>
 
-  <div class="frame-wrap" id="fw-2">
-    <div class="loading-overlay" id="lo-2">
-      <div class="spin-ring"></div>
-      <div class="loading-text">Loading Ops Monitor…</div>
-    </div>
-    <iframe src="monitoring_dashboard.html" id="if-2" onload="frameLoaded(2)" loading="lazy"></iframe>
-  </div>
 
 </div>
 
@@ -235,7 +223,7 @@
 <div id="statusbar">
   <div class="st-item">
     <div class="st-dot green"></div>
-    <span>3 DASHBOARDS</span>
+    <span>2 DASHBOARDS</span>
   </div>
   <div class="st-item">
     <div class="st-dot blue"></div>
@@ -250,7 +238,6 @@
   const tabs = [
     { name: 'COMMAND CENTER' },
     { name: 'CALL ANALYTICS' },
-    { name: 'OPS MONITOR' },
   ];
 
   let current = 0;
