@@ -190,10 +190,10 @@
     Command Center
     <span class="tab-badge">MAIN</span>
   </div>
-  <div class="tab" onclick="openExternal('https://script.google.com/macros/s/AKfycbzjkQFJ3Exag-ttVNyonppkERQeuxnjchl_SQZJoogS5EBr_raDomD2IKnpSmpGzEV1/exec')" data-index="1">
+  <div class="tab" onclick="switchTab(1, this)" data-index="1">
     <div class="tab-icon">📞</div>
     Call Analytics
-    <span class="tab-badge">↗ LIVE</span>
+    <span class="tab-badge">LIVE</span>
   </div>
 </div>
 
@@ -208,7 +208,13 @@
     <iframe src="dashboard.html" id="if-0" onload="frameLoaded(0)"></iframe>
   </div>
 
-
+  <div class="frame-wrap" id="fw-1">
+    <div class="loading-overlay" id="lo-1">
+      <div class="spin-ring"></div>
+      <div class="loading-text">Loading Call Analytics…</div>
+    </div>
+    <iframe src="live_dashboard.html" id="if-1" onload="frameLoaded(1)" loading="lazy"></iframe>
+  </div>
 
 </div>
 
@@ -233,12 +239,8 @@
     { name: 'CALL ANALYTICS' },
   ];
 
-  function openExternal(url) {
-    window.open(url, '_blank');
-  }
-
-  
-  const loaded = new Set([0]); // first frame starts loading
+  let current = 0;
+  const loaded = new Set([0]);
 
   function switchTab(idx, el) {
     if (idx === current) return;
